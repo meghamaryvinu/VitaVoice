@@ -1,0 +1,104 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { useApp } from '@/app/context/AppContext';
+import { Check } from 'lucide-react';
+
+const languages = [
+  { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்' },
+  { code: 'te', name: 'Telugu', nativeName: 'తెలుగు' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
+  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা' },
+  { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ' },
+  { code: 'ml', name: 'Malayalam', nativeName: 'മലയാളം' }
+];
+
+export const LanguageSelect = () => {
+  const navigate = useNavigate();
+  const { setSelectedLanguage } = useApp();
+  const [selected, setSelected] = useState('');
+
+  const handleContinue = () => {
+    if (selected) {
+      const language = languages.find(l => l.code === selected);
+      setSelectedLanguage(language?.name || 'English');
+      localStorage.setItem('vitavoice_intro_seen', 'true');
+      localStorage.setItem('vitavoice_language', selected);
+      navigate('/login');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
+      <div className="px-6 py-8">
+        <motion.h1
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="text-3xl font-bold text-[#1E293B] mb-2"
+        >
+          Select Your Language
+        </motion.h1>
+        <motion.p
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="text-base text-gray-600"
+        >
+          Choose your preferred language for voice interactions
+        </motion.p>
+      </div>
+
+      <div className="flex-1 px-6 pb-6">
+        <div className="grid grid-cols-2 gap-4">
+          {languages.map((lang, index) => (
+            <motion.button
+              key={lang.code}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1 * index }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setSelected(lang.code)}
+              className={`h-[100px] rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 relative ${
+                selected === lang.code
+                  ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-lg'
+                  : 'bg-white border-gray-200 text-[#1E293B] hover:border-[#2563EB]'
+              }`}
+            >
+              {selected === lang.code && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center"
+                >
+                  <Check className="w-4 h-4 text-[#2563EB]" />
+                </motion.div>
+              )}
+              <span className="text-2xl font-semibold">{lang.nativeName}</span>
+              <span className={`text-sm ${selected === lang.code ? 'text-white/80' : 'text-gray-500'}`}>
+                {lang.name}
+              </span>
+            </motion.button>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-6 pb-8">
+        <motion.button
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleContinue}
+          disabled={!selected}
+          className={`w-full h-14 rounded-xl font-semibold text-base transition-all ${
+            selected
+              ? 'bg-[#059669] text-white shadow-lg hover:bg-[#047857]'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          Continue
+        </motion.button>
+      </div>
+    </div>
+  );
+};
