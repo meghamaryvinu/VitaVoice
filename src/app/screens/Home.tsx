@@ -17,17 +17,31 @@ export const Home = () => {
   const [userName, setUserName] = useState('User');
   const [greeting, setGreeting] = useState('Good Morning');
 
-  useEffect(() => {
-    const user = authService.getCurrentUser();
-    if (user) {
-      setUserName(user.name.split(' ')[0]);
+useEffect(() => {
+  const loadUser = async () => {
+    const user = await authService.getCurrentUser();
+
+    if (!user) {
+      navigate('/login');
+      return;
     }
 
-    const hour = new Date().getHours();
-    if (hour < 12) setGreeting('Good Morning');
-    else if (hour < 18) setGreeting('Good Afternoon');
-    else setGreeting('Good Evening');
-  }, []);
+    const name =
+      user?.name ||
+      user.email?.split('@')[0] ||
+      'User';
+
+    setUserName(name.split(' ')[0]);
+  };
+
+  loadUser();
+
+  const hour = new Date().getHours();
+  if (hour < 12) setGreeting('Good Morning');
+  else if (hour < 18) setGreeting('Good Afternoon');
+  else setGreeting('Good Evening');
+}, [navigate]);
+
 
   const handleMicClick = () => {
     setIsListening(!isListening);

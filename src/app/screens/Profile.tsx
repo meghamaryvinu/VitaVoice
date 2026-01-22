@@ -10,15 +10,20 @@ export const Profile = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState<Partial<UserProfile>>({});
 
-    useEffect(() => {
-        const currentUser = authService.getCurrentUser();
-        if (currentUser) {
-            setUser(currentUser);
-            setFormData(currentUser);
-        } else {
-            navigate('/login');
-        }
-    }, [navigate]);
+useEffect(() => {
+  const loadUser = async () => {
+    const currentUser = await authService.getCurrentUser();
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    setUser(currentUser);
+    setFormData(currentUser);
+  };
+  loadUser();
+}, [navigate]);
+
+
 
     const handleLogout = () => {
         authService.logout();

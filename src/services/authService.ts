@@ -1,276 +1,212 @@
-// Authentication service for VitaVoice
+import { supabase } from '@/config/supabase'
+
+/* =========================
+   TYPES
+========================= */
 
 export interface UserCredentials {
-    email: string;
-    password: string;
+  email: string
+  password: string
+}
+
+export interface SignupData {
+  email: string
+  password: string
+  full_name: string
+  age: number
+  phone: string;          
+  blood_type: string;    
+  gender: 'male' | 'female' | 'other'
+  marital_status: string
+  checkup_reason: string
+  specific_problem: string
+  taking_medicines: boolean
+  medicine_names: string
+  allergies: string[]
+  other_allergy: string
+  had_surgery: boolean
+  surgery_details: string
+  head_mind_symptoms: string[]
+  eye_ear_mouth_symptoms: string[]
+  chest_heart_symptoms: string[]
+  stomach_digestive_symptoms: string[]
+  urinary_symptoms: string[]
+  habits: string[]
+  other_habit: string
+  diet: string
+  activity_level: string
+  family_history: string[]
+  mental_wellbeing: string[]
 }
 
 export interface UserProfile {
-    id: string;
-    email: string;
-    name: string;
-    age: number;
-    gender: 'male' | 'female' | 'other';
-    bloodType: string;
-    phoneNumber: string;
-    emergencyContact?: string;
-    allergies: string[];
-    chronicConditions: string[];
-    medications: string[];
-    createdAt: Date;
+  id: string
+  email: string
+  name: string
+  age: number
+  gender: 'male' | 'female' | 'other'
+  bloodType: string
+  phoneNumber: string
+  allergies: string[]
+  chronicConditions: string[]
+  createdAt: string
 }
 
-export interface SignupData extends UserCredentials {
-    name: string;
-    age: number;
-    gender: 'male' | 'female' | 'other';
-    bloodType: string;
-    phoneNumber: string;
-    emergencyContact?: string;
-    allergies?: string[];
-    chronicConditions?: string[];
-}
+/* =========================
+   AUTH SERVICE
+========================= */
 
 class AuthService {
-    private readonly USERS_KEY = 'vitavoice_users';
-    private readonly CURRENT_USER_KEY = 'vitavoice_current_user';
-    private readonly SESSION_KEY = 'vitavoice_session';
+  /* -------------------------
+     SIGNUP
+  ------------------------- */
+  async signup(formData: SignupData): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.full_name,
+          },
+        },
+      })
 
-    /**
-     * Sign up a new user
-     */
-    async signup(data: SignupData): Promise<{ success: boolean; error?: string }> {
-        try {
-            // Check if user already exists
-            const existingUser = this.getUserByEmail(data.email);
-            if (existingUser) {
-                return { success: false, error: 'Email already registered' };
-            }
+      if (authError) throw authError
+      if (!data.user) throw new Error('User not created')
 
-            // Create user profile
-            const userProfile: UserProfile = {
-                id: Date.now().toString(),
-                email: data.email,
-                name: data.name,
-                age: data.age,
-                gender: data.gender,
-                bloodType: data.bloodType,
-                phoneNumber: data.phoneNumber,
-                emergencyContact: data.emergencyContact,
-                allergies: data.allergies || [],
-                chronicConditions: data.chronicConditions || [],
-                medications: [],
-                createdAt: new Date(),
-            };
+      const user = data.user
 
-            // Store credentials (encrypted password)
-            const hashedPassword = await this.hashPassword(data.password);
+      const { error: insertError } = await supabase
+        .from('patient_health_records')
+        .insert({
+          user_id: user.id,
+          email: formData.email,
+          full_name: formData.full_name,
+          age: formData.age,
+          phone: formData.phone,         
+          blood_type: formData.blood_type, 
+          gender: formData.gender,
+          marital_status: formData.marital_status,
+          checkup_reason: formData.checkup_reason,
+          specific_problem: formData.specific_problem,
+          taking_medicines: formData.taking_medicines,
+          medicine_names: formData.medicine_names,
+          allergies: formData.allergies,
+          other_allergy: formData.other_allergy,
+          had_surgery: formData.had_surgery,
+          surgery_details: formData.surgery_details,
+          head_mind_symptoms: formData.head_mind_symptoms,
+          eye_ear_mouth_symptoms: formData.eye_ear_mouth_symptoms,
+          chest_heart_symptoms: formData.chest_heart_symptoms,
+          stomach_digestive_symptoms: formData.stomach_digestive_symptoms,
+          urinary_symptoms: formData.urinary_symptoms,
+          habits: formData.habits,
+          other_habit: formData.other_habit,
+          diet: formData.diet,
+          activity_level: formData.activity_level,
+          family_history: formData.family_history,
+          mental_wellbeing: formData.mental_wellbeing,
+        })
 
-            // Save user
-            const users = this.getAllUsers();
-            users.push({
-                profile: userProfile,
-                passwordHash: hashedPassword,
-            });
+      if (insertError) throw insertError
 
-            localStorage.setItem(this.USERS_KEY, JSON.stringify(users));
-
-            // Auto-login after signup
-            this.createSession(userProfile);
-
-            return { success: true };
-        } catch (error) {
-            return { success: false, error: 'Signup failed. Please try again.' };
-        }
+      return { success: true }
+    } catch (error: any) {
+      console.error('Signup error:', error)
+      return { success: false, error: error.message || 'Signup failed' }
     }
+  }
 
-    /**
-     * Login user
-     */
-    async login(credentials: UserCredentials): Promise<{ success: boolean; error?: string }> {
-        try {
-            const users = this.getAllUsers();
-            const user = users.find(u => u.profile.email === credentials.email);
+  /* -------------------------
+     LOGIN
+  ------------------------- */
+  async login(credentials: UserCredentials): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password,
+      })
 
-            if (!user) {
-                return { success: false, error: 'Invalid email or password' };
-            }
-
-            // Verify password
-            const isValid = await this.verifyPassword(credentials.password, user.passwordHash);
-            if (!isValid) {
-                return { success: false, error: 'Invalid email or password' };
-            }
-
-            // Create session
-            this.createSession(user.profile);
-
-            return { success: true };
-        } catch (error) {
-            return { success: false, error: 'Login failed. Please try again.' };
-        }
+      if (error) throw error
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Login failed' }
     }
+  }
 
-    /**
-     * Logout user
-     */
-    logout(): void {
-        localStorage.removeItem(this.SESSION_KEY);
-        localStorage.removeItem(this.CURRENT_USER_KEY);
+  /* -------------------------
+     LOGOUT
+  ------------------------- */
+  async logout() {
+    await supabase.auth.signOut()
+  }
+
+  /* -------------------------
+     GET CURRENT USER (PROFILE)
+  ------------------------- */
+  async getCurrentUser(): Promise<UserProfile | null> {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.user) return null
+
+      const userId = session.user.id
+
+      const { data, error } = await supabase
+        .from('patient_health_records')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      if (error || !data) return null
+
+      return {
+        id: userId,
+        email: data.email,
+        name: data.full_name,
+        age: data.age,
+        gender: data.gender,
+        bloodType: data.blood_type || '',
+        phoneNumber: data.phone_number || '',
+        allergies: data.allergies || [],
+        chronicConditions: data.chronic_conditions || [],
+        createdAt: data.created_at,
+      }
+    } catch (err) {
+      console.error('getCurrentUser error:', err)
+      return null
     }
+  }
 
-    /**
-     * Check if user is logged in
-     */
-    isAuthenticated(): boolean {
-        const session = localStorage.getItem(this.SESSION_KEY);
-        if (!session) return false;
+  /* -------------------------
+     UPDATE PROFILE
+  ------------------------- */
+  async updateProfile(profile: Partial<UserProfile>): Promise<boolean> {
+    try {
+      if (!profile.id) return false
+      const { error } = await supabase
+        .from('patient_health_records')
+        .update({
+          full_name: profile.name,
+          age: profile.age,
+          gender: profile.gender,
+          blood_type: profile.bloodType,
+          phone_number: profile.phoneNumber,
+          allergies: profile.allergies,
+          chronic_conditions: profile.chronicConditions,
+        })
+        .eq('user_id', profile.id)
 
-        try {
-            const sessionData = JSON.parse(session);
-            const expiryTime = new Date(sessionData.expiresAt).getTime();
-            const now = new Date().getTime();
-
-            if (now > expiryTime) {
-                this.logout();
-                return false;
-            }
-
-            return true;
-        } catch {
-            return false;
-        }
+      if (error) throw error
+      return true
+    } catch (err) {
+      console.error('updateProfile error:', err)
+      return false
     }
-
-    /**
-     * Get current user profile
-     */
-    getCurrentUser(): UserProfile | null {
-        if (!this.isAuthenticated()) return null;
-
-        const userData = localStorage.getItem(this.CURRENT_USER_KEY);
-        if (!userData) return null;
-
-        try {
-            return JSON.parse(userData, (key, value) => {
-                if (key === 'createdAt') return new Date(value);
-                return value;
-            });
-        } catch {
-            return null;
-        }
-    }
-
-    /**
-     * Update user profile
-     */
-    updateProfile(updates: Partial<UserProfile>): boolean {
-        const currentUser = this.getCurrentUser();
-        if (!currentUser) return false;
-
-        const updatedUser = { ...currentUser, ...updates };
-
-        // Update in users list
-        const users = this.getAllUsers();
-        const userIndex = users.findIndex(u => u.profile.id === currentUser.id);
-
-        if (userIndex !== -1) {
-            users[userIndex].profile = updatedUser;
-            localStorage.setItem(this.USERS_KEY, JSON.stringify(users));
-            localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(updatedUser));
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Hash password (simple implementation - use bcrypt in production)
-     */
-    private async hashPassword(password: string): Promise<string> {
-        // Simple hash for demo - use proper bcrypt in production
-        const encoder = new TextEncoder();
-        const data = encoder.encode(password + 'vitavoice_salt');
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    /**
-     * Verify password
-     */
-    private async verifyPassword(password: string, hash: string): Promise<boolean> {
-        const passwordHash = await this.hashPassword(password);
-        return passwordHash === hash;
-    }
-
-    /**
-     * Create user session
-     */
-    private createSession(user: UserProfile): void {
-        const session = {
-            userId: user.id,
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        };
-
-        localStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
-        localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user));
-    }
-
-    /**
-     * Get all users (internal)
-     */
-    private getAllUsers(): Array<{ profile: UserProfile; passwordHash: string }> {
-        const data = localStorage.getItem(this.USERS_KEY);
-        if (!data) return [];
-
-        try {
-            return JSON.parse(data, (key, value) => {
-                if (key === 'createdAt') return new Date(value);
-                return value;
-            });
-        } catch {
-            return [];
-        }
-    }
-
-    /**
-     * Get user by email (internal)
-     */
-    private getUserByEmail(email: string): UserProfile | null {
-        const users = this.getAllUsers();
-        const user = users.find(u => u.profile.email === email);
-        return user ? user.profile : null;
-    }
-
-    /**
-     * Change password
-     */
-    async changePassword(oldPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
-        const currentUser = this.getCurrentUser();
-        if (!currentUser) {
-            return { success: false, error: 'Not authenticated' };
-        }
-
-        const users = this.getAllUsers();
-        const user = users.find(u => u.profile.id === currentUser.id);
-
-        if (!user) {
-            return { success: false, error: 'User not found' };
-        }
-
-        // Verify old password
-        const isValid = await this.verifyPassword(oldPassword, user.passwordHash);
-        if (!isValid) {
-            return { success: false, error: 'Current password is incorrect' };
-        }
-
-        // Update password
-        user.passwordHash = await this.hashPassword(newPassword);
-        localStorage.setItem(this.USERS_KEY, JSON.stringify(users));
-
-        return { success: true };
-    }
+  }
 }
 
-export const authService = new AuthService();
+export const authService = new AuthService()
