@@ -14,7 +14,7 @@ export interface SignupData {
   password: string
   full_name: string
   age: number
-  phone: string;          
+  phone_number: string;          
   blood_type: string;    
   gender: 'male' | 'female' | 'other'
   marital_status: string
@@ -84,7 +84,7 @@ class AuthService {
           email: formData.email,
           full_name: formData.full_name,
           age: formData.age,
-          phone: formData.phone,         
+          phone_number: formData.phone_number,         
           blood_type: formData.blood_type, 
           gender: formData.gender,
           marital_status: formData.marital_status,
