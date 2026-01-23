@@ -7,35 +7,56 @@ import { authService, type UserProfile } from '@/services/authService';
 export const History = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'personal' | 'family'>('personal');
 
   useEffect(() => {
-    const currentUser = authService.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-    } else {
-      // Fallback for demo if not logged in
-      const legacyData = localStorage.getItem('vitavoice_user_data');
-      if (legacyData) {
-        const parsed = JSON.parse(legacyData);
-        setUser({
-          id: 'legacy',
-          email: 'demo@example.com',
-          name: parsed.name || 'User',
-          age: parseInt(parsed.age) || 30,
-          gender: (parsed.sex?.toLowerCase() as any) || 'male',
-          bloodType: 'O+',
-          phoneNumber: '',
-          allergies: parsed.allergies ? [parsed.allergies] : [],
-          chronicConditions: parsed.history ? [parsed.history] : [],
-          medications: [],
-          createdAt: new Date(),
-          // Add extra fields for history view
-          ...parsed
-        } as any);
-      }
-    }
+    loadUserData();
   }, []);
+
+  const loadUserData = async () => {
+    try {
+      const currentUser = await authService.getCurrentUser(); // Add await here
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        // Fallback for demo if not logged in
+        const legacyData = localStorage.getItem('vitavoice_user_data');
+        if (legacyData) {
+          const parsed = JSON.parse(legacyData);
+          setUser({
+            id: 'legacy',
+            email: 'demo@example.com',
+            name: parsed.name || 'User',
+            age: parseInt(parsed.age) || 30,
+            gender: (parsed.sex?.toLowerCase() as any) || 'male',
+            bloodType: 'O+',
+            phoneNumber: '',
+            allergies: parsed.allergies ? [parsed.allergies] : [],
+            chronicConditions: parsed.history ? [parsed.history] : [],
+            createdAt: new Date().toISOString(),
+            // Add extra fields for history view
+            ...parsed
+          } as any);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2563EB] mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
