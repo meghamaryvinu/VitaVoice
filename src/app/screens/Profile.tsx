@@ -1,7 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ArrowLeft, User, Phone, Mail, Droplet, Calendar, AlertCircle, Edit2, Save, LogOut } from 'lucide-react';
+import {
+    ArrowLeft,
+    User,
+    Phone,
+    Mail,
+    Droplet,
+    Calendar,
+    AlertCircle,
+    Edit2,
+    Save,
+    LogOut,
+    HeartPulse
+} from 'lucide-react';
 import { authService, type UserProfile } from '@/services/authService';
 
 export const Profile = () => {
@@ -10,20 +22,18 @@ export const Profile = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState<Partial<UserProfile>>({});
 
-useEffect(() => {
-  const loadUser = async () => {
-    const currentUser = await authService.getCurrentUser();
-    if (!currentUser) {
-      navigate('/login');
-      return;
-    }
-    setUser(currentUser);
-    setFormData(currentUser);
-  };
-  loadUser();
-}, [navigate]);
-
-
+    useEffect(() => {
+        const loadUser = async () => {
+            const currentUser = await authService.getCurrentUser();
+            if (!currentUser) {
+                navigate('/login');
+                return;
+            }
+            setUser(currentUser);
+            setFormData(currentUser);
+        };
+        loadUser();
+    }, [navigate]);
 
     const handleLogout = () => {
         authService.logout();
@@ -75,7 +85,11 @@ useEffect(() => {
                         onClick={() => setIsEditing(!isEditing)}
                         className="absolute top-4 right-4 p-2 text-gray-400 hover:text-[#2563EB] hover:bg-blue-50 rounded-full"
                     >
-                        {isEditing ? <Save className="w-5 h-5" onClick={handleSave} /> : <Edit2 className="w-5 h-5" />}
+                        {isEditing ? (
+                            <Save className="w-5 h-5" onClick={handleSave} />
+                        ) : (
+                            <Edit2 className="w-5 h-5" />
+                        )}
                     </motion.button>
                 </div>
 
@@ -93,51 +107,91 @@ useEffect(() => {
                                     <input
                                         type="number"
                                         value={formData.age}
-                                        onChange={e => setFormData({ ...formData, age: parseInt(e.target.value) })}
+                                        onChange={e =>
+                                            setFormData({
+                                                ...formData,
+                                                age: parseInt(e.target.value)
+                                            })
+                                        }
                                         className="w-full p-2 border rounded-lg"
                                     />
                                 ) : (
-                                    <p className="font-medium text-[#1E293B]">{user.age} years</p>
+                                    <p className="font-medium text-[#1E293B]">
+                                        {user.age} years
+                                    </p>
                                 )}
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Gender</label>
-                                <p className="font-medium text-[#1E293B] capitalize">{user.gender}</p>
+                                <label className="text-xs text-gray-500 block mb-1">
+                                    Gender
+                                </label>
+                                <p className="font-medium text-[#1E293B] capitalize">
+                                    {user.gender}
+                                </p>
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Blood Type</label>
+                                <label className="text-xs text-gray-500 block mb-1">
+                                    Blood Type
+                                </label>
                                 {isEditing ? (
                                     <select
                                         value={formData.bloodType}
-                                        onChange={e => setFormData({ ...formData, bloodType: e.target.value })}
+                                        onChange={e =>
+                                            setFormData({
+                                                ...formData,
+                                                bloodType: e.target.value
+                                            })
+                                        }
                                         className="w-full p-2 border rounded-lg"
                                     >
-                                        {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(t => (
-                                            <option key={t} value={t}>{t}</option>
+                                        {[
+                                            'A+',
+                                            'A-',
+                                            'B+',
+                                            'B-',
+                                            'AB+',
+                                            'AB-',
+                                            'O+',
+                                            'O-'
+                                        ].map(t => (
+                                            <option key={t} value={t}>
+                                                {t}
+                                            </option>
                                         ))}
                                     </select>
                                 ) : (
                                     <div className="flex items-center gap-2">
                                         <Droplet className="w-4 h-4 text-[#DC2626]" />
-                                        <p className="font-medium text-[#1E293B]">{user.bloodType}</p>
+                                        <p className="font-medium text-[#1E293B]">
+                                            {user.bloodType}
+                                        </p>
                                     </div>
                                 )}
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Phone</label>
+                                <label className="text-xs text-gray-500 block mb-1">
+                                    Phone
+                                </label>
                                 {isEditing ? (
                                     <input
                                         type="tel"
                                         value={formData.phoneNumber}
-                                        onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })}
+                                        onChange={e =>
+                                            setFormData({
+                                                ...formData,
+                                                phoneNumber: e.target.value
+                                            })
+                                        }
                                         className="w-full p-2 border rounded-lg"
                                     />
                                 ) : (
                                     <div className="flex items-center gap-2">
                                         <Phone className="w-4 h-4 text-[#059669]" />
-                                        <p className="font-medium text-[#1E293B]">{user.phoneNumber}</p>
+                                        <p className="font-medium text-[#1E293B]">
+                                            {user.phoneNumber}
+                                        </p>
                                     </div>
                                 )}
                             </div>
@@ -154,37 +208,73 @@ useEffect(() => {
 
                     <div className="space-y-4">
                         <div>
-                            <label className="text-xs text-gray-500 block mb-2">Allergies</label>
+                            <label className="text-xs text-gray-500 block mb-2">
+                                Allergies
+                            </label>
                             <div className="flex flex-wrap gap-2">
                                 {user.allergies.length > 0 ? (
                                     user.allergies.map((allergy, i) => (
-                                        <span key={i} className="px-3 py-1 bg-red-50 text-red-600 rounded-full text-sm border border-red-100">
+                                        <span
+                                            key={i}
+                                            className="px-3 py-1 bg-red-50 text-red-600 rounded-full text-sm border border-red-100"
+                                        >
                                             {allergy}
                                         </span>
                                     ))
                                 ) : (
-                                    <p className="text-sm text-gray-500 italic">No allergies recorded</p>
+                                    <p className="text-sm text-gray-500 italic">
+                                        No allergies recorded
+                                    </p>
                                 )}
                             </div>
                         </div>
 
                         <div>
-                            <label className="text-xs text-gray-500 block mb-2">Chronic Conditions</label>
+                            <label className="text-xs text-gray-500 block mb-2">
+                                Chronic Conditions
+                            </label>
                             <div className="flex flex-wrap gap-2">
                                 {user.chronicConditions.length > 0 ? (
                                     user.chronicConditions.map((condition, i) => (
-                                        <span key={i} className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-sm border border-orange-100">
+                                        <span
+                                            key={i}
+                                            className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-sm border border-orange-100"
+                                        >
                                             {condition}
                                         </span>
                                     ))
                                 ) : (
-                                    <p className="text-sm text-gray-500 italic">No chronic conditions recorded</p>
+                                    <p className="text-sm text-gray-500 italic">
+                                        No chronic conditions recorded
+                                    </p>
                                 )}
                             </div>
                         </div>
                     </div>
                 </div>
-
+                {/* Health Profile Redirect (ADDED) */}
+                <motion.div
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => navigate('/health-profile')}
+                    className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 cursor-pointer hover:bg-blue-50 transition"
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[#2563EB]/10 flex items-center justify-center">
+                                <HeartPulse className="w-5 h-5 text-[#2563EB]" />
+                            </div>
+                            <div>
+                                <p className="font-semibold text-[#1E293B]">
+                                    Health Profile
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                    View and manage your family health data, records, and more.
+                                </p>
+                            </div>
+                        </div>
+                        <ArrowLeft className="w-5 h-5 text-gray-400 rotate-180" />
+                    </div>
+                </motion.div>
                 {/* Account Info */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                     <h3 className="font-bold text-[#1E293B] mb-4 flex items-center gap-2">
@@ -198,6 +288,8 @@ useEffect(() => {
                         </span>
                     </div>
                 </div>
+
+                
             </div>
         </div>
     );
