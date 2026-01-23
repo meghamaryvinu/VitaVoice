@@ -3,22 +3,24 @@
 export interface Vaccine {
     id: string;
     name: string;
-    ageMonths: number; // Age when vaccine should be given
+    ageMonths: number;
     description: string;
-    doses: number; // Number of doses required
+    doses: number;
     category: 'infant' | 'child' | 'adult' | 'pregnancy';
 }
 
 export interface VaccinationRecord {
     id: string;
+    patientHealthRecordId: string;
     vaccineId: string;
-    familyMemberId: string;
+    vaccineName: string;
     dateGiven: Date;
     doseNumber: number;
     batchNumber?: string;
     location?: string;
     nextDueDate?: Date;
     notes?: string;
+    isCompleted: boolean;
 }
 
 // Indian National Immunization Schedule
@@ -70,26 +72,47 @@ const VACCINATION_SCHEDULE: Vaccine[] = [
 ];
 
 class VaccinationService {
+    private supabase: any = null;
     private records: VaccinationRecord[] = [];
 
-    /**
-     * Initialize service
-     */
-    async init(): Promise<void> {
-        const saved = localStorage.getItem('vitavoice_vaccinations');
-        if (saved) {
-            this.records = JSON.parse(saved, (key, value) => {
-                if (key === 'dateGiven' || key === 'nextDueDate') {
-                    return value ? new Date(value) : value;
-                }
-                return value;
-            });
+    setSupabaseClient(supabaseClient: any): void {
+        this.supabase = supabaseClient;
+    }
+
+    async init(userId: string): Promise<void> {
+        if (!this.supabase) {
+            console.warn('Supabase not initialized');
+            return;
+        }
+
+        try {
+            const { data, error } = await this.supabase
+                .from('vaccination_records')
+                .select('*')
+                .eq('user_id', userId)
+                .order('date_given', { ascending: false });
+
+            if (error) throw error;
+
+            this.records = (data || []).map((record: any) => ({
+                id: record.id,
+                patientHealthRecordId: record.patient_health_record_id,
+                vaccineId: record.vaccine_id,
+                vaccineName: record.vaccine_name,
+                dateGiven: new Date(record.date_given),
+                doseNumber: record.dose_number,
+                batchNumber: record.batch_number,
+                location: record.location,
+                nextDueDate: record.next_due_date ? new Date(record.next_due_date) : undefined,
+                notes: record.notes,
+                isCompleted: record.is_completed,
+            }));
+        } catch (error) {
+            console.error('Error loading vaccination records:', error);
+            this.records = [];
         }
     }
 
-    /**
-     * Get vaccination schedule
-     */
     getSchedule(category?: 'infant' | 'child' | 'adult' | 'pregnancy'): Vaccine[] {
         if (category) {
             return VACCINATION_SCHEDULE.filter(v => v.category === category);
@@ -97,81 +120,91 @@ class VaccinationService {
         return VACCINATION_SCHEDULE;
     }
 
-    /**
-     * Add vaccination record
-     */
-    addRecord(record: Omit<VaccinationRecord, 'id'>): VaccinationRecord {
-        const newRecord: VaccinationRecord = {
-            ...record,
-            id: Date.now().toString(),
-        };
+    async addRecord(record: Omit<VaccinationRecord, 'id'>, userId: string): Promise<VaccinationRecord | null> {
+        if (!this.supabase) {
+            console.warn('Supabase not initialized');
+            return null;
+        }
 
-        this.records.push(newRecord);
-        this.saveRecords();
+        try {
+            const { data, error } = await this.supabase
+                .from('vaccination_records')
+                .insert({
+                    user_id: userId,
+                    patient_health_record_id: record.patientHealthRecordId,
+                    vaccine_id: record.vaccineId,
+                    vaccine_name: record.vaccineName,
+                    date_given: record.dateGiven.toISOString(),
+                    dose_number: record.doseNumber,
+                    batch_number: record.batchNumber,
+                    location: record.location,
+                    next_due_date: record.nextDueDate?.toISOString(),
+                    notes: record.notes,
+                    is_completed: record.isCompleted,
+                })
+                .select()
+                .single();
 
-        return newRecord;
+            if (error) throw error;
+
+            const newRecord: VaccinationRecord = {
+                id: data.id,
+                patientHealthRecordId: data.patient_health_record_id,
+                vaccineId: data.vaccine_id,
+                vaccineName: data.vaccine_name,
+                dateGiven: new Date(data.date_given),
+                doseNumber: data.dose_number,
+                batchNumber: data.batch_number,
+                location: data.location,
+                nextDueDate: data.next_due_date ? new Date(data.next_due_date) : undefined,
+                notes: data.notes,
+                isCompleted: data.is_completed,
+            };
+
+            this.records.push(newRecord);
+            return newRecord;
+        } catch (error) {
+            console.error('Error saving vaccination record:', error);
+            return null;
+        }
     }
 
-    /**
-     * Get vaccination records for a family member
-     */
-    getRecords(familyMemberId: string): VaccinationRecord[] {
-        return this.records.filter(r => r.familyMemberId === familyMemberId);
+    getRecords(patientHealthRecordId: string): VaccinationRecord[] {
+        return this.records.filter(r => r.patientHealthRecordId === patientHealthRecordId);
     }
 
-    /**
-     * Get due vaccines for a family member based on age
-     */
-    getDueVaccines(familyMemberId: string, ageMonths: number): Vaccine[] {
-        const givenRecords = this.getRecords(familyMemberId);
+    getDueVaccines(patientHealthRecordId: string, ageMonths: number): Vaccine[] {
+        const givenRecords = this.getRecords(patientHealthRecordId);
         const givenVaccineIds = new Set(givenRecords.map(r => r.vaccineId));
 
         return VACCINATION_SCHEDULE.filter(vaccine => {
-            // Not yet given
             if (givenVaccineIds.has(vaccine.id)) return false;
-
-            // Age appropriate (within 2 months window)
             return ageMonths >= vaccine.ageMonths && ageMonths <= vaccine.ageMonths + 2;
         });
     }
 
-    /**
-     * Get overdue vaccines
-     */
-    getOverdueVaccines(familyMemberId: string, ageMonths: number): Vaccine[] {
-        const givenRecords = this.getRecords(familyMemberId);
+    getOverdueVaccines(patientHealthRecordId: string, ageMonths: number): Vaccine[] {
+        const givenRecords = this.getRecords(patientHealthRecordId);
         const givenVaccineIds = new Set(givenRecords.map(r => r.vaccineId));
 
         return VACCINATION_SCHEDULE.filter(vaccine => {
-            // Not yet given
             if (givenVaccineIds.has(vaccine.id)) return false;
-
-            // Overdue (more than 2 months past due age)
             return ageMonths > vaccine.ageMonths + 2;
         });
     }
 
-    /**
-     * Get upcoming vaccines (next 3 months)
-     */
-    getUpcomingVaccines(familyMemberId: string, ageMonths: number): Vaccine[] {
-        const givenRecords = this.getRecords(familyMemberId);
+    getUpcomingVaccines(patientHealthRecordId: string, ageMonths: number): Vaccine[] {
+        const givenRecords = this.getRecords(patientHealthRecordId);
         const givenVaccineIds = new Set(givenRecords.map(r => r.vaccineId));
 
         return VACCINATION_SCHEDULE.filter(vaccine => {
-            // Not yet given
             if (givenVaccineIds.has(vaccine.id)) return false;
-
-            // Upcoming (within next 3 months)
             return vaccine.ageMonths > ageMonths && vaccine.ageMonths <= ageMonths + 3;
         });
     }
 
-    /**
-     * Get vaccination completion percentage
-     */
-    getCompletionPercentage(familyMemberId: string, ageMonths: number): number {
-        const givenRecords = this.getRecords(familyMemberId);
+    getCompletionPercentage(patientHealthRecordId: string, ageMonths: number): number {
+        const givenRecords = this.getRecords(patientHealthRecordId);
         const applicableVaccines = VACCINATION_SCHEDULE.filter(v => v.ageMonths <= ageMonths);
 
         if (applicableVaccines.length === 0) return 0;
@@ -182,44 +215,45 @@ class VaccinationService {
         return Math.round((givenCount / applicableVaccines.length) * 100);
     }
 
-    /**
-     * Generate vaccination certificate
-     */
-    generateCertificate(familyMemberId: string): {
-        familyMemberId: string;
+    generateCertificate(patientHealthRecordId: string): {
+        patientHealthRecordId: string;
         records: VaccinationRecord[];
         completionPercentage: number;
         generatedDate: Date;
     } {
-        const records = this.getRecords(familyMemberId);
-
+        const records = this.getRecords(patientHealthRecordId);
         return {
-            familyMemberId,
+            patientHealthRecordId,
             records,
-            completionPercentage: 100, // Simplified
+            completionPercentage: 100,
             generatedDate: new Date(),
         };
     }
 
-    /**
-     * Delete vaccination record
-     */
-    deleteRecord(recordId: string): void {
-        this.records = this.records.filter(r => r.id !== recordId);
-        this.saveRecords();
+    async deleteRecord(recordId: string, userId: string): Promise<boolean> {
+        if (!this.supabase) {
+            console.warn('Supabase not initialized');
+            return false;
+        }
+
+        try {
+            const { error } = await this.supabase
+                .from('vaccination_records')
+                .delete()
+                .eq('id', recordId)
+                .eq('user_id', userId);
+
+            if (error) throw error;
+
+            this.records = this.records.filter(r => r.id !== recordId);
+            return true;
+        } catch (error) {
+            console.error('Error deleting vaccination record:', error);
+            return false;
+        }
     }
 
-    /**
-     * Save records to localStorage
-     */
-    private saveRecords(): void {
-        localStorage.setItem('vitavoice_vaccinations', JSON.stringify(this.records));
-    }
-
-    /**
-     * Get vaccination statistics
-     */
-    getStatistics(familyMemberId: string, ageMonths: number): {
+    getStatistics(patientHealthRecordId: string, ageMonths: number): {
         totalGiven: number;
         dueNow: number;
         overdue: number;
@@ -227,11 +261,11 @@ class VaccinationService {
         completionPercentage: number;
     } {
         return {
-            totalGiven: this.getRecords(familyMemberId).length,
-            dueNow: this.getDueVaccines(familyMemberId, ageMonths).length,
-            overdue: this.getOverdueVaccines(familyMemberId, ageMonths).length,
-            upcoming: this.getUpcomingVaccines(familyMemberId, ageMonths).length,
-            completionPercentage: this.getCompletionPercentage(familyMemberId, ageMonths),
+            totalGiven: this.getRecords(patientHealthRecordId).length,
+            dueNow: this.getDueVaccines(patientHealthRecordId, ageMonths).length,
+            overdue: this.getOverdueVaccines(patientHealthRecordId, ageMonths).length,
+            upcoming: this.getUpcomingVaccines(patientHealthRecordId, ageMonths).length,
+            completionPercentage: this.getCompletionPercentage(patientHealthRecordId, ageMonths),
         };
     }
 }

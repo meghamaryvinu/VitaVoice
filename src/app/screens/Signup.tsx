@@ -11,7 +11,7 @@ interface FormData {
   full_name: string;
   age: string;
   blood_type: string;   
-  phone: string;       
+  phone_number: string;       
   gender: string;
   marital_status: string;
   checkup_reason: string;
@@ -49,7 +49,7 @@ export const Signup = () => {
     full_name: '',
     age: '',
     blood_type: '',   
-    phone: '',        
+    phone_number: '',        
     gender: '',
     marital_status: '',
     checkup_reason: '',
@@ -149,7 +149,7 @@ const handleNext = async () => {
       setError('Please enter a valid age');
       return;
     }
-    if (!formData.phone || !/^\d{10}$/.test(formData.phone)) {
+    if (!formData.phone_number || !/^\d{10}$/.test(formData.phone_number)) {
       setError('Please enter a valid 10-digit phone number');
       return;
     }
@@ -278,7 +278,7 @@ const handleNext = async () => {
     password: formData.password,
     full_name: formData.full_name,
     age: parseInt(formData.age) || 0,
-    phone: formData.phone,        
+    phone_number: formData.phone_number,        
     blood_type: formData.blood_type,
     gender: formData.gender.toLowerCase() as 'male' | 'female' | 'other',
     marital_status: formData.marital_status,
@@ -453,8 +453,8 @@ const StepAbout = ({ formData, updateField, emailError,passwordError }: any) => 
     <Input 
       label="Phone Number *"
       type="tel"
-      value={formData.phone}
-      onChange={(v: string) => updateField('phone', v)}
+      value={formData.phone_number}
+      onChange={(v: string) => updateField('phone_number', v)}
       placeholder="9876543210"
     />
     <SelectionGroup 

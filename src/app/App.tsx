@@ -15,7 +15,7 @@ import { Settings } from '@/app/screens/Settings';
 import { Allergies } from '@/app/screens/Allergies';
 import { DietNutrition } from '@/app/screens/DietNutrition';
 import { MedicationManager } from '@/app/screens/MedicationManager';
-import { VaccinationTracker } from '@/app/screens/VaccinationTracker';
+import VaccinationTracker from '@/app/screens/VaccinationTracker';
 import { HealthEducation } from '@/app/screens/HealthEducation';
 import { Profile } from '@/app/screens/Profile';
 import { Appointments } from '@/app/screens/Appointments';

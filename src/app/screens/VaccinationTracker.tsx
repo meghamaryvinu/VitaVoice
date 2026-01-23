@@ -1,407 +1,396 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Plus, Syringe, CheckCircle, AlertTriangle, Calendar, X, Award } from 'lucide-react';
-import { vaccinationService, type VaccinationRecord, type Vaccine } from '@/services/vaccinationService';
-import { useApp } from '@/app/context/AppContext';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/config/supabase';
+import { vaccinationService, Vaccine } from '@/services/vaccinationService';
 import { authService } from '@/services/authService';
+import { useNavigate } from 'react-router-dom'; // or your router
 
-export const VaccinationTracker = () => {
-    const navigate = useNavigate();
-    const { familyMembers } = useApp();
-    const [selectedMember, setSelectedMember] = useState<string>('');
-    const [currentUser, setCurrentUser] = useState<any>(null);
-    const [records, setRecords] = useState<VaccinationRecord[]>([]);
-    const [dueVaccines, setDueVaccines] = useState<Vaccine[]>([]);
-    const [overdueVaccines, setOverdueVaccines] = useState<Vaccine[]>([]);
-    const [upcomingVaccines, setUpcomingVaccines] = useState<Vaccine[]>([]);
-    const [stats, setStats] = useState<any>(null);
-    const [showAddForm, setShowAddForm] = useState(false);
-    const [selectedVaccine, setSelectedVaccine] = useState<Vaccine | null>(null);
-    const [formData, setFormData] = useState({
-        dateGiven: new Date().toISOString().split('T')[0],
-        batchNumber: '',
-        location: '',
-        notes: '',
-    });
+export default function VaccinationTracker() {
+  const navigate = useNavigate(); // If using React Router
+  const [loading, setLoading] = useState(true);
+  const [patientRecordId, setPatientRecordId] = useState<string>('');
+  const [userId, setUserId] = useState<string>('');
+  const [ageMonths, setAgeMonths] = useState(0);
+  const [dueVaccines, setDueVaccines] = useState<Vaccine[]>([]);
+  const [overdueVaccines, setOverdueVaccines] = useState<Vaccine[]>([]);
+  const [upcomingVaccines, setUpcomingVaccines] = useState<Vaccine[]>([]);
+  const [givenRecords, setGivenRecords] = useState<any[]>([]);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState<string>('');
 
-    useEffect(() => {
-        const user = authService.getCurrentUser();
-        if (user) {
-            setCurrentUser(user);
-            // Default to current user if no member selected
-            if (!selectedMember) {
-                setSelectedMember(user.id);
-            }
-        }
-    }, []);
+  useEffect(() => {
+    loadVaccinations();
+  }, []);
 
-    useEffect(() => {
-        if (selectedMember) {
-            loadData();
-        }
-    }, [selectedMember]);
+  async function loadVaccinations() {
+    try {
+      vaccinationService.setSupabaseClient(supabase);
 
-    const loadData = async () => {
-        await vaccinationService.init();
+      const user = await authService.getCurrentUser();
+      if (!user) {
+        console.log('No user found');
+        setLoading(false);
+        return;
+      }
 
-        if (selectedMember) {
-            // Check if selected member is current user or family member
-            let age = 0;
-            if (currentUser && selectedMember === currentUser.id) {
-                age = currentUser.age;
-            } else {
-                const member = familyMembers.find(m => m.id === selectedMember);
-                if (member) age = member.age;
-            }
+      setUserId(user.id);
 
-            // Calculate age in months (approximate)
-            const ageMonths = age * 12;
+      const { data: patientRecord, error } = await supabase
+        .from('patient_health_records')
+        .select('id, age')
+        .eq('user_id', user.id)
+        .single();
 
-            setRecords(vaccinationService.getRecords(selectedMember));
-            setDueVaccines(vaccinationService.getDueVaccines(selectedMember, ageMonths));
-            setOverdueVaccines(vaccinationService.getOverdueVaccines(selectedMember, ageMonths));
-            setUpcomingVaccines(vaccinationService.getUpcomingVaccines(selectedMember, ageMonths));
-            setStats(vaccinationService.getStatistics(selectedMember, ageMonths));
-        }
-    };
+      if (error) {
+        console.error('Error fetching patient record:', error);
+        setLoading(false);
+        return;
+      }
 
-    const handleAddRecord = () => {
-        if (selectedVaccine && selectedMember) {
-            vaccinationService.addRecord({
-                vaccineId: selectedVaccine.id,
-                familyMemberId: selectedMember,
-                dateGiven: new Date(formData.dateGiven),
-                doseNumber: 1,
-                batchNumber: formData.batchNumber,
-                location: formData.location,
-                notes: formData.notes,
-            });
+      setPatientRecordId(patientRecord.id);
+      
+      const months = patientRecord.age * 12;
+      setAgeMonths(months);
 
-            setShowAddForm(false);
-            setSelectedVaccine(null);
-            setFormData({
-                dateGiven: new Date().toISOString().split('T')[0],
-                batchNumber: '',
-                location: '',
-                notes: '',
-            });
-            loadData();
-        }
-    };
+      await vaccinationService.init(user.id);
 
+      const due = vaccinationService.getDueVaccines(patientRecord.id, months);
+      const overdue = vaccinationService.getOverdueVaccines(patientRecord.id, months);
+      const upcoming = vaccinationService.getUpcomingVaccines(patientRecord.id, months);
+      const records = vaccinationService.getRecords(patientRecord.id);
+
+      setDueVaccines(due);
+      setOverdueVaccines(overdue);
+      setUpcomingVaccines(upcoming);
+      setGivenRecords(records);
+
+    } catch (error) {
+      console.error('Error loading vaccinations:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function markVaccineAsTaken(vaccine: Vaccine) {
+    if (!patientRecordId || !userId) return;
+
+    const success = await vaccinationService.addRecord({
+      patientHealthRecordId: patientRecordId,
+      vaccineId: vaccine.id,
+      vaccineName: vaccine.name,
+      dateGiven: new Date(),
+      doseNumber: 1,
+      isCompleted: true,
+    }, userId);
+
+    if (success) {
+      await loadVaccinations();
+      alert('Vaccine marked as taken!');
+    } else {
+      alert('Failed to save vaccination record');
+    }
+  }
+
+  function startEditDate(record: any) {
+    setEditingRecordId(record.id);
+    const dateStr = new Date(record.dateGiven).toISOString().split('T')[0];
+    setEditDate(dateStr);
+  }
+
+  function cancelEdit() {
+    setEditingRecordId(null);
+    setEditDate('');
+  }
+
+  async function saveEditDate(recordId: string) {
+    if (!userId || !editDate) return;
+
+    try {
+      const { error } = await supabase
+        .from('vaccination_records')
+        .update({
+          date_given: new Date(editDate).toISOString(),
+        })
+        .eq('id', recordId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      await loadVaccinations();
+      setEditingRecordId(null);
+      setEditDate('');
+      alert('Date updated successfully!');
+    } catch (error) {
+      console.error('Error updating date:', error);
+      alert('Failed to update date');
+    }
+  }
+
+  async function deleteRecord(recordId: string) {
+    if (!confirm('Are you sure you want to delete this vaccination record?')) return;
+
+    const success = await vaccinationService.deleteRecord(recordId, userId);
+    if (success) {
+      await loadVaccinations();
+      alert('Record deleted successfully!');
+    } else {
+      alert('Failed to delete record');
+    }
+  }
+
+  const goBack = () => {
+    navigate('/home'); // Change '/home' to your actual home route
+    // OR use: window.history.back(); // to go to previous page
+  };
+
+  if (loading) {
     return (
-        <div className="min-h-screen bg-[#F8FAFC]">
-            <div className="bg-gradient-to-r from-[#059669] to-[#047857] px-4 py-6 text-white">
-                <div className="flex items-center gap-3 mb-4">
-                    <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => navigate('/home')}
-                        className="w-10 h-10 rounded-full flex items-center justify-center bg-white/20"
-                    >
-                        <ArrowLeft className="w-6 h-6" />
-                    </motion.button>
-                    <h1 className="text-2xl font-bold">Vaccination Tracker</h1>
-                </div>
-
-                {stats && (
-                    <div className="grid grid-cols-3 gap-3">
-                        <div className="bg-white/20 rounded-xl p-3 backdrop-blur">
-                            <div className="text-2xl font-bold">{stats.completionPercentage}%</div>
-                            <div className="text-sm opacity-90">Complete</div>
-                        </div>
-                        <div className="bg-white/20 rounded-xl p-3 backdrop-blur">
-                            <div className="text-2xl font-bold">{stats.dueNow}</div>
-                            <div className="text-sm opacity-90">Due Now</div>
-                        </div>
-                        <div className="bg-white/20 rounded-xl p-3 backdrop-blur">
-                            <div className="text-2xl font-bold">{stats.overdue}</div>
-                            <div className="text-sm opacity-90">Overdue</div>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <div className="px-4 py-6">
-                {/* Member Selector */}
-                <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tracking For</label>
-                    <select
-                        value={selectedMember}
-                        onChange={(e) => setSelectedMember(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#059669]"
-                    >
-                        {currentUser && (
-                            <option value={currentUser.id}>{currentUser.name} (Me)</option>
-                        )}
-                        {familyMembers.map(member => (
-                            <option key={member.id} value={member.id}>{member.name} ({member.age} years)</option>
-                        ))}
-                    </select>
-                </div>
-
-                {selectedMember ? (
-                    <>
-                        {/* Overdue Vaccines */}
-                        {overdueVaccines.length > 0 && (
-                            <div className="mb-6">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <AlertTriangle className="w-5 h-5 text-[#DC2626]" />
-                                    <h2 className="text-lg font-bold text-[#DC2626]">Overdue Vaccines</h2>
-                                </div>
-                                <div className="space-y-2">
-                                    {overdueVaccines.map((vaccine, index) => (
-                                        <motion.div
-                                            key={vaccine.id}
-                                            initial={{ x: -20, opacity: 0 }}
-                                            animate={{ x: 0, opacity: 1 }}
-                                            transition={{ delay: index * 0.05 }}
-                                            className="bg-red-50 border-2 border-red-200 rounded-xl p-4"
-                                        >
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex-1">
-                                                    <div className="font-semibold text-[#DC2626]">{vaccine.name}</div>
-                                                    <div className="text-sm text-gray-600 mt-1">{vaccine.description}</div>
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        Due at {vaccine.ageMonths} months
-                                                    </div>
-                                                </div>
-                                                <motion.button
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => {
-                                                        setSelectedVaccine(vaccine);
-                                                        setShowAddForm(true);
-                                                    }}
-                                                    className="px-4 py-2 bg-[#DC2626] text-white rounded-lg text-sm font-medium"
-                                                >
-                                                    Mark Given
-                                                </motion.button>
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Due Vaccines */}
-                        {dueVaccines.length > 0 && (
-                            <div className="mb-6">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Calendar className="w-5 h-5 text-[#F59E0B]" />
-                                    <h2 className="text-lg font-bold text-[#F59E0B]">Due Now</h2>
-                                </div>
-                                <div className="space-y-2">
-                                    {dueVaccines.map((vaccine, index) => (
-                                        <motion.div
-                                            key={vaccine.id}
-                                            initial={{ x: -20, opacity: 0 }}
-                                            animate={{ x: 0, opacity: 1 }}
-                                            transition={{ delay: index * 0.05 }}
-                                            className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4"
-                                        >
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex-1">
-                                                    <div className="font-semibold text-[#F59E0B]">{vaccine.name}</div>
-                                                    <div className="text-sm text-gray-600 mt-1">{vaccine.description}</div>
-                                                </div>
-                                                <motion.button
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => {
-                                                        setSelectedVaccine(vaccine);
-                                                        setShowAddForm(true);
-                                                    }}
-                                                    className="px-4 py-2 bg-[#F59E0B] text-white rounded-lg text-sm font-medium"
-                                                >
-                                                    Mark Given
-                                                </motion.button>
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Upcoming Vaccines */}
-                        {upcomingVaccines.length > 0 && (
-                            <div className="mb-6">
-                                <h2 className="text-lg font-bold text-[#1E293B] mb-3">Upcoming Vaccines</h2>
-                                <div className="space-y-2">
-                                    {upcomingVaccines.map((vaccine, index) => (
-                                        <motion.div
-                                            key={vaccine.id}
-                                            initial={{ y: 20, opacity: 0 }}
-                                            animate={{ y: 0, opacity: 1 }}
-                                            transition={{ delay: index * 0.05 }}
-                                            className="bg-white rounded-xl p-4 border border-gray-200"
-                                        >
-                                            <div className="font-semibold text-[#1E293B]">{vaccine.name}</div>
-                                            <div className="text-sm text-gray-600 mt-1">{vaccine.description}</div>
-                                            <div className="text-xs text-[#2563EB] mt-1">
-                                                Due at {vaccine.ageMonths} months
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Vaccination History */}
-                        <div className="mb-6">
-                            <h2 className="text-lg font-bold text-[#1E293B] mb-3">Vaccination History</h2>
-                            {records.length === 0 ? (
-                                <div className="bg-white rounded-xl p-8 text-center">
-                                    <Syringe className="w-16 h-16 text-gray-300 mx-auto mb-3" />
-                                    <p className="text-gray-600">No vaccination records yet</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {records.map((record, index) => {
-                                        const vaccine = vaccinationService.getSchedule().find(v => v.id === record.vaccineId);
-                                        return (
-                                            <motion.div
-                                                key={record.id}
-                                                initial={{ y: 20, opacity: 0 }}
-                                                animate={{ y: 0, opacity: 1 }}
-                                                transition={{ delay: index * 0.05 }}
-                                                className="bg-white rounded-xl p-4 border border-gray-200"
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-[#059669]/10 flex items-center justify-center flex-shrink-0">
-                                                        <CheckCircle className="w-5 h-5 text-[#059669]" />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <div className="font-semibold text-[#1E293B]">{vaccine?.name}</div>
-                                                        <div className="text-sm text-gray-600 mt-1">
-                                                            Given on {new Date(record.dateGiven).toLocaleDateString()}
-                                                        </div>
-                                                        {record.location && (
-                                                            <div className="text-xs text-gray-500 mt-1">Location: {record.location}</div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Completion Badge */}
-                        {stats && stats.completionPercentage === 100 && (
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="bg-gradient-to-r from-[#059669] to-[#047857] rounded-2xl p-6 text-white text-center mb-6"
-                            >
-                                <Award className="w-16 h-16 mx-auto mb-3" />
-                                <h3 className="text-xl font-bold mb-2">Fully Vaccinated!</h3>
-                                <p className="text-sm opacity-90">All age-appropriate vaccines completed</p>
-                            </motion.div>
-                        )}
-                    </>
-                ) : (
-                    <div className="bg-white rounded-xl p-8 text-center">
-                        <Syringe className="w-16 h-16 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-600">Select a family member to view vaccination records</p>
-                    </div>
-                )}
-            </div>
-
-            {/* Add Vaccination Record Dialog */}
-            <AnimatePresence>
-                {showAddForm && selectedVaccine && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-                        onClick={() => setShowAddForm(false)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-white rounded-2xl p-6 max-w-md w-full"
-                        >
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-[#1E293B]">Record Vaccination</h2>
-                                <button
-                                    onClick={() => setShowAddForm(false)}
-                                    className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"
-                                >
-                                    <X className="w-5 h-5 text-gray-600" />
-                                </button>
-                            </div>
-
-                            <div className="bg-[#059669]/10 rounded-xl p-4 mb-6">
-                                <div className="font-semibold text-[#059669]">{selectedVaccine.name}</div>
-                                <div className="text-sm text-gray-600 mt-1">{selectedVaccine.description}</div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Date Given</label>
-                                    <input
-                                        type="date"
-                                        value={formData.dateGiven}
-                                        onChange={(e) => setFormData({ ...formData, dateGiven: e.target.value })}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#059669]"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Batch Number (Optional)</label>
-                                    <input
-                                        type="text"
-                                        value={formData.batchNumber}
-                                        onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#059669]"
-                                        placeholder="e.g., BATCH123"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Location (Optional)</label>
-                                    <input
-                                        type="text"
-                                        value={formData.location}
-                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#059669]"
-                                        placeholder="e.g., Primary Health Center"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
-                                    <textarea
-                                        value={formData.notes}
-                                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#059669]"
-                                        placeholder="Any additional notes"
-                                        rows={2}
-                                    />
-                                </div>
-
-                                <div className="flex gap-3 pt-4">
-                                    <button
-                                        onClick={() => setShowAddForm(false)}
-                                        className="flex-1 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-medium"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleAddRecord}
-                                        className="flex-1 py-3 bg-[#059669] text-white rounded-xl font-medium"
-                                    >
-                                        Save Record
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading your vaccination records...</p>
         </div>
+      </div>
     );
-};
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Back Button */}
+        <button
+          onClick={goBack}
+          className="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors group"
+        >
+          <div className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:shadow-md transition-shadow">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-5 w-5" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </div>
+          <span className="font-medium">Back</span>
+        </button>
+
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">💉 Vaccination Tracker</h1>
+          <p className="text-gray-600">Keep track of your immunization records</p>
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+            <div className="text-sm text-gray-500 mb-1">Completed</div>
+            <div className="text-3xl font-bold text-green-600">{givenRecords.length}</div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+            <div className="text-sm text-gray-500 mb-1">Due Now</div>
+            <div className="text-3xl font-bold text-blue-600">{dueVaccines.length}</div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+            <div className="text-sm text-gray-500 mb-1">Pending</div>
+            <div className="text-3xl font-bold text-amber-600">{overdueVaccines.length}</div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+            <div className="text-sm text-gray-500 mb-1">Upcoming</div>
+            <div className="text-3xl font-bold text-purple-600">{upcomingVaccines.length}</div>
+          </div>
+        </div>
+
+        {/* Already Taken */}
+        {givenRecords.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-6 bg-green-500 rounded"></div>
+              <h2 className="text-xl font-semibold text-gray-800">Completed Vaccinations</h2>
+            </div>
+            <div className="space-y-3">
+              {givenRecords.map(record => (
+                <div key={record.id} className="bg-white rounded-xl shadow-sm p-4 border border-green-100 hover:shadow-md transition-shadow">
+                  {editingRecordId === record.id ? (
+                    <div>
+                      <div className="font-medium text-gray-800 mb-3">{record.vaccineName}</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <input
+                          type="date"
+                          value={editDate}
+                          onChange={(e) => setEditDate(e.target.value)}
+                          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                        <button
+                          onClick={() => saveEditDate(record.id)}
+                          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1">
+                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <span className="text-xl">✓</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-800">{record.vaccineName}</div>
+                          <div className="text-sm text-gray-500 mt-1">
+                            📅 {new Date(record.dateGiven).toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => startEditDate(record)}
+                          className="text-blue-600 hover:text-blue-700 px-3 py-1 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => deleteRecord(record.id)}
+                          className="text-red-600 hover:text-red-700 px-3 py-1 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Due Now */}
+        {dueVaccines.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-6 bg-blue-500 rounded"></div>
+              <h2 className="text-xl font-semibold text-gray-800">Due Now</h2>
+            </div>
+            <div className="space-y-3">
+              {dueVaccines.map(vaccine => (
+                <div key={vaccine.id} className="bg-white rounded-xl shadow-sm p-4 border border-blue-100 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="mt-1">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-xl">💉</span>
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-800">{vaccine.name}</div>
+                        <div className="text-sm text-gray-600 mt-1">{vaccine.description}</div>
+                        <div className="text-xs text-gray-500 mt-2 bg-blue-50 inline-block px-2 py-1 rounded">
+                          Due at {vaccine.ageMonths} months
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => markVaccineAsTaken(vaccine)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors whitespace-nowrap"
+                    >
+                      Mark Done
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Overdue - Now with softer amber/orange colors */}
+        {overdueVaccines.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-6 bg-amber-500 rounded"></div>
+              <h2 className="text-xl font-semibold text-gray-800">Pending Vaccinations</h2>
+            </div>
+            <div className="space-y-3">
+              {overdueVaccines.map(vaccine => (
+                <div key={vaccine.id} className="bg-white rounded-xl shadow-sm p-4 border border-amber-100 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="mt-1">
+                        <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                          <span className="text-xl">⏰</span>
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-800">{vaccine.name}</div>
+                        <div className="text-sm text-gray-600 mt-1">{vaccine.description}</div>
+                        <div className="text-xs text-amber-700 mt-2 bg-amber-50 inline-block px-2 py-1 rounded">
+                          Recommended at {vaccine.ageMonths} months
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => markVaccineAsTaken(vaccine)}
+                      className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors whitespace-nowrap"
+                    >
+                      Mark Done
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming */}
+        {upcomingVaccines.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-6 bg-purple-500 rounded"></div>
+              <h2 className="text-xl font-semibold text-gray-800">Upcoming Vaccinations</h2>
+            </div>
+            <div className="space-y-3">
+              {upcomingVaccines.map(vaccine => (
+                <div key={vaccine.id} className="bg-white rounded-xl shadow-sm p-4 border border-purple-100 hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1">
+                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                        <span className="text-xl">📅</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-800">{vaccine.name}</div>
+                      <div className="text-sm text-gray-600 mt-1">{vaccine.description}</div>
+                      <div className="text-xs text-purple-700 mt-2 bg-purple-50 inline-block px-2 py-1 rounded">
+                        Due at {vaccine.ageMonths} months
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {dueVaccines.length === 0 && overdueVaccines.length === 0 && upcomingVaccines.length === 0 && givenRecords.length === 0 && (
+          <div className="text-center py-16 bg-white rounded-xl shadow-sm">
+            <div className="text-6xl mb-4">🎉</div>
+            <div className="text-xl font-semibold text-gray-800 mb-2">All Caught Up!</div>
+            <div className="text-gray-600">You're up to date with your vaccinations</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
