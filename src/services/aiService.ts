@@ -6,7 +6,7 @@ import { emergencyDetector } from './emergencyDetector';
 import { symptomEngine } from './symptomEngine';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 interface AIResponse {
     text: string;
@@ -92,11 +92,29 @@ class AIService {
             },
             safetySettings: [
                 {
-                    category: 'HARM_CATEGORY_MEDICAL',
-                    threshold: 'BLOCK_NONE',
+                    category: 'HARM_CATEGORY_HARASSMENT',
+                    threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+                },
+                {
+                    category: 'HARM_CATEGORY_HATE_SPEECH',
+                    threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+                },
+                {
+                    category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                    threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+                },
+                {
+                    category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                    threshold: 'BLOCK_MEDIUM_AND_ABOVE',
                 },
             ],
         };
+
+        console.log('🔄 Making Gemini API request:', {
+            url: `${GEMINI_API_URL}?key=${GEMINI_API_KEY.substring(0, 10)}...`,
+            bodySize: JSON.stringify(requestBody).length,
+            historyLength: this.conversationHistory.length
+        });
 
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
             method: 'POST',
@@ -106,12 +124,18 @@ class AIService {
             body: JSON.stringify(requestBody),
         });
 
+        console.log('📡 Gemini API response status:', response.status);
+
         if (!response.ok) {
-            throw new Error(`AI API error: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('❌ Gemini API error response:', errorText);
+            throw new Error(`AI API error: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
-        const aiText = data.candidates[0]?.content?.parts[0]?.text || 'I apologize, I could not process that. Please try again.';
+        console.log('✅ Gemini API response data:', data);
+        
+        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'I apologize, I could not process that. Please try again.';
 
         // Add AI response to history
         this.conversationHistory.push({

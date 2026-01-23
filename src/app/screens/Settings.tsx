@@ -10,11 +10,17 @@ import { useApp } from '@/app/context/AppContext';
 
 export const Settings = () => {
   const navigate = useNavigate();
-  const { selectedLanguage, setSelectedLanguage, isOnline } = useApp();
-  const [autoPlay, setAutoPlay] = useState(true);
+  const { selectedLanguage, setSelectedLanguage, isOnline, autoPlay, setAutoPlay } = useApp();
   const [highContrast, setHighContrast] = useState(false);
   const [textSize, setTextSize] = useState<'small' | 'medium' | 'large'>('medium');
-  const [voiceSpeed, setVoiceSpeed] = useState(1.0);
+  const [voiceSpeed, setVoiceSpeed] = useState<number>(() => {
+    const saved = localStorage.getItem('vitavoice_voiceSpeed');
+    return saved ? parseFloat(saved) : 1.0;
+  });
+  const [voiceGender, setVoiceGender] = useState<'male' | 'female'>(() => {
+    const saved = localStorage.getItem('vitavoice_voiceGender');
+    return (saved as 'male' | 'female') || 'female';
+  });
   const [showLanguageDialog, setShowLanguageDialog] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [storageUsed, setStorageUsed] = useState('0 KB');
@@ -32,6 +38,9 @@ export const Settings = () => {
     if (document.documentElement.classList.contains('dark')) {
       setHighContrast(true);
     }
+
+    // Debug: Log available voices
+    speechService.logAvailableVoices();
   }, []);
 
   const calculateStorage = () => {
@@ -92,8 +101,19 @@ export const Settings = () => {
 
   const handleVoiceSpeedChange = (speed: number) => {
     setVoiceSpeed(speed);
-    speechService.setRate(speed);
-    speechService.speak('This is the voice speed', { rate: speed });
+    localStorage.setItem('vitavoice_voiceSpeed', speed.toString());
+    if (autoPlay) {
+        speechService.speak('This is the voice speed', { rate: speed });
+    }
+  };
+
+  const handleVoiceGenderChange = (gender: 'male' | 'female') => {
+    setVoiceGender(gender);
+    speechService.setVoiceGender(gender);
+    localStorage.setItem('vitavoice_voiceGender', gender);
+    if (autoPlay) {
+      speechService.speak('Voice gender changed', { gender });
+    }
   };
 
   const handleNotificationToggle = async (enabled: boolean) => {
@@ -139,6 +159,20 @@ export const Settings = () => {
               />
               <span className="text-xs text-gray-500 dark:text-gray-400">Fast</span>
             </div>
+          )
+        },
+        {
+          icon: Volume2,
+          label: 'Voice Gender',
+          customControl: (
+            <select 
+              value={voiceGender}
+              onChange={(e) => handleVoiceGenderChange(e.target.value as 'male' | 'female')}
+              className="px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
+            >
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
           )
         },
         {

@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
+import { createContext, useContext, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Mic, Send, Volume2, AlertTriangle, MicOff } from 'lucide-react';
+import { ArrowLeft, Mic, Send, Volume2, AlertTriangle, MicOff, VolumeX } from 'lucide-react';
 import { useApp } from '@/app/context/AppContext';
 import { aiService } from '@/services/aiService';
 import { speechService } from '@/services/speechService';
 import { languageService } from '@/services/languageService';
 import { emergencyDetector } from '@/services/emergencyDetector';
+import { debugGeminiAPI } from '@/utils/debugApi';
 
 export const Chat = () => {
   const navigate = useNavigate();
-  const { chatHistory, addChatMessage, isOnline, selectedLanguage } = useApp();
+  const { chatHistory, addChatMessage, isOnline, selectedLanguage, autoPlay, setAutoPlay } = useApp();
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -22,6 +24,13 @@ export const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory]);
 
+  // Stop audio when component unmounts
+  useEffect(() => {
+    return () => {
+      speechService.stopSpeaking();
+    };
+  }, []);
+
   useEffect(() => {
     // Add welcome message if chat is empty
     if (chatHistory.length === 0) {
@@ -32,10 +41,18 @@ export const Chat = () => {
         hasVoice: true
       });
 
-      // Speak welcome message
-      if (speechService.isSpeechSynthesisSupported()) {
+      // Speak welcome message only if autoPlay is enabled
+      if (autoPlay && speechService.isSpeechSynthesisSupported()) {
         speechService.speak(welcomeText);
       }
+    }
+
+    // Debug API on component mount (only in development)
+    if (import.meta.env.DEV) {
+      console.log('🔧 Running Gemini API debug check...');
+      debugGeminiAPI().then(success => {
+        console.log('API Debug result:', success ? '✅ Working' : '❌ Failed');
+      });
     }
   }, []);
 
@@ -65,7 +82,9 @@ export const Chat = () => {
         hasVoice: true
       });
 
-      speechService.speak(emergencyMsg, { rate: 0.8 });
+      if (autoPlay) {
+        speechService.speak(emergencyMsg, { rate: 0.8 });
+      }
 
       // Navigate to emergency screen after brief delay
       setTimeout(() => {
@@ -77,7 +96,11 @@ export const Chat = () => {
     // Get AI response
     setIsProcessing(true);
     try {
+      console.log('🤖 Sending message to AI service:', userMessage);
+      console.log('🔍 AI Service available:', aiService.isAvailable());
+
       const response = await aiService.chat(userMessage);
+      console.log('✅ AI Response received:', response);
 
       addChatMessage({
         sender: 'assistant',
@@ -85,13 +108,24 @@ export const Chat = () => {
         hasVoice: true
       });
 
-      // Speak response
-      if (speechService.isSpeechSynthesisSupported()) {
+      // Speak response only if autoPlay is enabled
+      if (autoPlay && speechService.isSpeechSynthesisSupported()) {
         speechService.speak(response.text);
       }
     } catch (error) {
-      console.error('Chat error:', error);
-      const errorMsg = 'I apologize, I had trouble processing that. Could you please try again?';
+      console.error('❌ Chat error details:', error);
+
+      // More detailed error message
+      let errorMsg = 'I apologize, I had trouble processing that. ';
+      if (error instanceof Error) {
+        if (error.message.includes('API')) {
+          errorMsg += 'There seems to be an issue with the AI service. ';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMsg += 'Please check your internet connection. ';
+        }
+      }
+      errorMsg += 'Could you please try again?';
+
       addChatMessage({
         sender: 'assistant',
         text: errorMsg,
@@ -150,7 +184,7 @@ export const Chat = () => {
       });
     }
   };
-
+  
   return (
     <div className="h-screen bg-[#F8FAFC] flex flex-col">
       {/* Header */}
@@ -173,11 +207,30 @@ export const Chat = () => {
         </div>
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={() => navigate('/settings')}
-          className="ml-auto w-10 h-10 rounded-full bg-[#2563EB]/10 flex items-center justify-center"
+          onClick={() => setAutoPlay(!autoPlay)}
+          className={`ml-auto w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+            autoPlay ? 'bg-[#2563EB]/10' : 'bg-red-100'
+          }`}
+          title={autoPlay ? 'Disable audio' : 'Enable audio'}
         >
-          <Volume2 className="w-5 h-5 text-[#2563EB]" />
+          {autoPlay ? (
+            <Volume2 className="w-5 h-5 text-[#2563EB]" />
+          ) : (
+            <VolumeX className="w-5 h-5 text-red-600" />
+          )}
         </motion.button>
+
+        {/* Debug button (only in development) */}
+        {import.meta.env.DEV && (
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => debugGeminiAPI()}
+            className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center"
+            title="Debug API"
+          >
+            <span className="text-xs">🔧</span>
+          </motion.button>
+        )}
       </div>
 
       {/* Emergency Banner */}
@@ -208,8 +261,8 @@ export const Chat = () => {
             <div className={`max-w-[80%] ${message.sender === 'user' ? 'order-2' : ''}`}>
               <div
                 className={`rounded-2xl px-4 py-3 ${message.sender === 'user'
-                    ? 'bg-[#2563EB] text-white rounded-tr-sm'
-                    : 'bg-white text-[#1E293B] rounded-tl-sm shadow-sm border border-gray-100'
+                  ? 'bg-[#2563EB] text-white rounded-tr-sm'
+                  : 'bg-white text-[#1E293B] rounded-tl-sm shadow-sm border border-gray-100'
                   }`}
               >
                 <p className="text-base leading-relaxed whitespace-pre-wrap">{message.text}</p>

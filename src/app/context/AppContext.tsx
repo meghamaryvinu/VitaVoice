@@ -32,6 +32,8 @@ interface AppContextType {
   isOnline: boolean;
   selectedLanguage: string;
   setSelectedLanguage: (lang: string) => void;
+  autoPlay: boolean;
+  setAutoPlay: (value: boolean) => void;
   familyMembers: FamilyMember[];
   addFamilyMember: (member: Omit<FamilyMember, 'id'>) => void;
   chatHistory: ChatMessage[];
@@ -45,6 +47,10 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [autoPlay, setAutoPlay] = useState(() => {
+    const saved = localStorage.getItem('vitavoice_autoplay');
+    return saved ? JSON.parse(saved) : true;
+  });
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => {
     const saved = localStorage.getItem('vitavoice_family');
     return saved ? JSON.parse(saved) : [];
@@ -62,6 +68,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Initialize voice gender from speechService
+    const savedVoiceGender = localStorage.getItem('vitavoice_voiceGender') as 'male' | 'female' | 'neutral' | null;
+    if (savedVoiceGender) {
+      // Import speechService here to avoid circular dependency
+      import('@/services/speechService').then(({ speechService }) => {
+        speechService.setVoiceGender(savedVoiceGender);
+      });
+    }
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -76,6 +91,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('vitavoice_history', JSON.stringify(medicalHistory));
   }, [medicalHistory]);
 
+  useEffect(() => {
+    localStorage.setItem('vitavoice_autoplay', JSON.stringify(autoPlay));
+  }, [autoPlay]);
+
   const addFamilyMember = (member: Omit<FamilyMember, 'id'>) => {
     const newMember = { ...member, id: Date.now().toString() };
     setFamilyMembers(prev => [...prev, newMember]);
@@ -84,7 +103,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const addChatMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const newMessage = {
       ...message,
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date()
     };
     setChatHistory(prev => [...prev, newMessage]);
@@ -93,7 +112,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const addHistoryEntry = (entry: Omit<HistoryEntry, 'id' | 'date'>) => {
     const newEntry = {
       ...entry,
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       date: new Date()
     };
     setMedicalHistory(prev => [newEntry, ...prev]);
@@ -105,6 +124,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         isOnline,
         selectedLanguage,
         setSelectedLanguage,
+        autoPlay,
+        setAutoPlay,
         familyMembers,
         addFamilyMember,
         chatHistory,
