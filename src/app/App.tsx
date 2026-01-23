@@ -8,7 +8,7 @@ import { LanguageSelect } from '@/app/screens/LanguageSelect';
 import { Home } from '@/app/screens/Home';
 import { Chat } from '@/app/screens/Chat';
 import { HealthProfile } from '@/app/screens/HealthProfile';
-import { SymptomChecker } from '@/app/screens/SymptomChecker';
+import SymptomChecker from '@/app/screens/SymptomChecker';
 import { History } from '@/app/screens/History';
 import { Emergency } from '@/app/screens/Emergency';
 import { Settings } from '@/app/screens/Settings';
