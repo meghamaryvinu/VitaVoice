@@ -31,7 +31,6 @@ class SpeechService {
         'samantha': 'female',
         'victoria': 'female',
         'tom': 'male',
-        'victoria': 'female',
         // Android voices
         'en_US': 'female', // default Google US English is female
     };
@@ -185,7 +184,7 @@ class SpeechService {
             rate?: number; // 0.1 to 10, default 1
             pitch?: number; // 0 to 2, default 1
             volume?: number; // 0 to 1, default 1
-        gender?: 'male' | 'female'; // Voice gender preference
+            gender?: 'male' | 'female'; // Voice gender preference
             onEnd?: () => void;
             onError?: (error: string) => void;
         }
@@ -200,12 +199,12 @@ class SpeechService {
 
         const lang = options?.language || languageService.getLanguage();
         const langEntry = SUPPORTED_LANGUAGES[lang];
-        
+
         if (!langEntry) {
             options?.onError?.(`Language "${lang}" not found in supported languages`);
             return;
         }
-        
+
         const langCode = langEntry.code;
 
         this.currentUtterance = new SpeechSynthesisUtterance(text);
@@ -217,39 +216,39 @@ class SpeechService {
         // Try to find a voice for the language with preferred gender
         const voices = this.synthesis.getVoices();
         const gender = options?.gender || this.preferredVoiceGender;
-        
+
         let voice: SpeechSynthesisVoice | undefined;
-        
+
         // Find voice matching language and gender
         voice = voices.find(v => {
             if (!v.lang.startsWith(langCode)) return false;
-            
+
             const voiceName = v.name.toLowerCase();
-            
+
             // Check for explicit gender in name (Google voices)
             if (gender === 'male' && voiceName.includes('male')) return true;
             if (gender === 'female' && voiceName.includes('female')) return true;
-            
+
             // Check against known voice database
             const knownGender = this.voiceGenderMap[voiceName];
             if (knownGender === gender) return true;
-            
+
             // Check for common male/female patterns
             const malePatterns = ['male', 'man', 'boy', 'david', 'mark', 'ravi', 'alex', 'daniel', 'rishi', 'tom'];
             const femalePatterns = ['female', 'woman', 'girl', 'zira', 'heera', 'karen', 'moira', 'samantha', 'victoria'];
-            
+
             if (gender === 'male') {
                 return malePatterns.some(p => voiceName.includes(p));
             } else {
                 return femalePatterns.some(p => voiceName.includes(p));
             }
         });
-        
+
         // Fall back to any voice for the language if gender-specific not found
         if (!voice) {
             voice = voices.find(v => v.lang.startsWith(langCode));
         }
-        
+
         // Fall back to English if nothing found
         if (!voice) {
             voice = voices.find(v => v.lang.startsWith('en'));
@@ -299,19 +298,19 @@ class SpeechService {
     getVoicesForLanguage(language: LanguageCode, gender?: 'male' | 'female'): SpeechSynthesisVoice[] {
         const voices = this.synthesis.getVoices();
         let filtered = voices.filter(v => v.lang.startsWith(language));
-        
+
         if (gender) {
             const genderPatterns = {
                 male: ['male', 'man', 'boy'],
                 female: ['female', 'woman', 'girl']
             };
-            
+
             const patterns = genderPatterns[gender];
-            filtered = filtered.filter(v => 
+            filtered = filtered.filter(v =>
                 patterns.some(pattern => v.name.toLowerCase().includes(pattern))
             );
         }
-        
+
         return filtered;
     }
 

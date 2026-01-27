@@ -150,8 +150,8 @@ export const Login = () => {
             onClick={handleLogin}
             disabled={!email || !password || loading}
             className={`w-full h-14 rounded-xl font-semibold text-base shadow-lg transition-all flex items-center justify-center ${email && password && !loading
-                ? 'bg-[#2563EB] text-white hover:bg-[#1E40AF]'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              ? 'bg-[#2563EB] text-white hover:bg-[#1E40AF]'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
           >
             {loading ? (
@@ -168,6 +168,15 @@ export const Login = () => {
           >
             <Fingerprint className="w-6 h-6 text-[#2563EB]" />
             <span>Login with Biometrics</span>
+          </motion.button>
+
+          {/* Demo Mode Button */}
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate('/home')}
+            className="w-full h-14 border-2 border-amber-300 bg-amber-50 rounded-xl font-medium text-amber-700 flex items-center justify-center gap-2 hover:bg-amber-100 transition-all"
+          >
+            <span>🚀 Demo Mode (Skip Login)</span>
           </motion.button>
         </motion.div>
 
