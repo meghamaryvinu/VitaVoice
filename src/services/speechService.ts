@@ -11,6 +11,30 @@ class SpeechService {
     private synthesis: SpeechSynthesis;
     private isListening = false;
     private currentUtterance: SpeechSynthesisUtterance | null = null;
+    private preferredVoiceGender: 'male' | 'female' = 'female';
+    private voiceSpeed: number = 1.0;
+
+    // Known voice genders mapping for common voice names
+    private voiceGenderMap: { [key: string]: 'male' | 'female' } = {
+        // Microsoft voices
+        'microsoft david': 'male',
+        'microsoft mark': 'male',
+        'microsoft ravi': 'male',
+        'microsoft zira': 'female',
+        'microsoft heera': 'female',
+        // macOS/iOS voices
+        'alex': 'male',
+        'daniel': 'male',
+        'karen': 'female',
+        'moira': 'female',
+        'rishi': 'male',
+        'samantha': 'female',
+        'victoria': 'female',
+        'tom': 'male',
+        'victoria': 'female',
+        // Android voices
+        'en_US': 'female', // default Google US English is female
+    };
 
     constructor() {
         // Initialize Speech Recognition
@@ -25,6 +49,12 @@ class SpeechService {
 
         // Initialize Speech Synthesis
         this.synthesis = window.speechSynthesis;
+
+        // Load saved voice speed
+        const savedVoiceSpeed = localStorage.getItem('vitavoice_voiceSpeed');
+        if (savedVoiceSpeed) {
+            this.voiceSpeed = parseFloat(savedVoiceSpeed);
+        }
     }
 
     /**
@@ -54,9 +84,8 @@ class SpeechService {
             return;
         }
 
-        if (this.isListening) {
-            this.stopListening();
-        }
+        // Always stop first to ensure clean state
+        this.stopListening();
 
         const lang = language || languageService.getLanguage();
         const langCode = SUPPORTED_LANGUAGES[lang].code;
@@ -97,8 +126,13 @@ class SpeechService {
      */
     stopListening(): void {
         if (this.recognition && this.isListening) {
-            this.recognition.stop();
-            this.isListening = false;
+            try {
+                this.recognition.stop();
+                this.isListening = false;
+            } catch (error) {
+                console.error('Error stopping recognition:', error);
+                this.isListening = false;
+            }
         }
     }
 
@@ -107,6 +141,38 @@ class SpeechService {
      */
     getIsListening(): boolean {
         return this.isListening;
+    }
+
+    /**
+     * Set the speech rate and persist to localStorage
+     */
+    setRate(rate: number): void {
+        this.voiceSpeed = rate;
+        localStorage.setItem('vitavoice_voiceSpeed', rate.toString());
+        if (this.currentUtterance) {
+            this.currentUtterance.rate = rate;
+        }
+    }
+
+    /**
+     * Get the current voice speed
+     */
+    getRate(): number {
+        return this.voiceSpeed;
+    }
+
+    /**
+     * Set the preferred voice gender
+     */
+    setVoiceGender(gender: 'male' | 'female'): void {
+        this.preferredVoiceGender = gender;
+    }
+
+    /**
+     * Get the current voice gender preference
+     */
+    getVoiceGender(): 'male' | 'female' {
+        return this.preferredVoiceGender;
     }
 
     /**
@@ -119,6 +185,7 @@ class SpeechService {
             rate?: number; // 0.1 to 10, default 1
             pitch?: number; // 0 to 2, default 1
             volume?: number; // 0 to 1, default 1
+        gender?: 'male' | 'female'; // Voice gender preference
             onEnd?: () => void;
             onError?: (error: string) => void;
         }
@@ -132,18 +199,61 @@ class SpeechService {
         this.stopSpeaking();
 
         const lang = options?.language || languageService.getLanguage();
-        const langCode = SUPPORTED_LANGUAGES[lang].code;
+        const langEntry = SUPPORTED_LANGUAGES[lang];
+        
+        if (!langEntry) {
+            options?.onError?.(`Language "${lang}" not found in supported languages`);
+            return;
+        }
+        
+        const langCode = langEntry.code;
 
         this.currentUtterance = new SpeechSynthesisUtterance(text);
         this.currentUtterance.lang = langCode;
-        this.currentUtterance.rate = options?.rate || 0.9; // Slightly slower for clarity
+        this.currentUtterance.rate = options?.rate || this.voiceSpeed; // Use saved voice speed as default
         this.currentUtterance.pitch = options?.pitch || 1;
         this.currentUtterance.volume = options?.volume || 1;
 
-        // Try to find a voice for the language
+        // Try to find a voice for the language with preferred gender
         const voices = this.synthesis.getVoices();
-        const voice = voices.find(v => v.lang.startsWith(lang)) ||
-            voices.find(v => v.lang.startsWith('en'));
+        const gender = options?.gender || this.preferredVoiceGender;
+        
+        let voice: SpeechSynthesisVoice | undefined;
+        
+        // Find voice matching language and gender
+        voice = voices.find(v => {
+            if (!v.lang.startsWith(langCode)) return false;
+            
+            const voiceName = v.name.toLowerCase();
+            
+            // Check for explicit gender in name (Google voices)
+            if (gender === 'male' && voiceName.includes('male')) return true;
+            if (gender === 'female' && voiceName.includes('female')) return true;
+            
+            // Check against known voice database
+            const knownGender = this.voiceGenderMap[voiceName];
+            if (knownGender === gender) return true;
+            
+            // Check for common male/female patterns
+            const malePatterns = ['male', 'man', 'boy', 'david', 'mark', 'ravi', 'alex', 'daniel', 'rishi', 'tom'];
+            const femalePatterns = ['female', 'woman', 'girl', 'zira', 'heera', 'karen', 'moira', 'samantha', 'victoria'];
+            
+            if (gender === 'male') {
+                return malePatterns.some(p => voiceName.includes(p));
+            } else {
+                return femalePatterns.some(p => voiceName.includes(p));
+            }
+        });
+        
+        // Fall back to any voice for the language if gender-specific not found
+        if (!voice) {
+            voice = voices.find(v => v.lang.startsWith(langCode));
+        }
+        
+        // Fall back to English if nothing found
+        if (!voice) {
+            voice = voices.find(v => v.lang.startsWith('en'));
+        }
 
         if (voice) {
             this.currentUtterance.voice = voice;
@@ -155,8 +265,11 @@ class SpeechService {
         };
 
         this.currentUtterance.onerror = (event: any) => {
-            console.error('Speech synthesis error:', event);
-            options?.onError?.(event.error);
+            // Ignore "interrupted" errors - they happen when speech is cancelled intentionally
+            if (event.error !== 'interrupted') {
+                console.error('Speech synthesis error:', event);
+                options?.onError?.(event.error);
+            }
             this.currentUtterance = null;
         };
 
@@ -181,11 +294,33 @@ class SpeechService {
     }
 
     /**
-     * Get available voices for a language
+     * Get available voices for a language and optional gender
      */
-    getVoicesForLanguage(language: LanguageCode): SpeechSynthesisVoice[] {
+    getVoicesForLanguage(language: LanguageCode, gender?: 'male' | 'female'): SpeechSynthesisVoice[] {
         const voices = this.synthesis.getVoices();
-        return voices.filter(v => v.lang.startsWith(language));
+        let filtered = voices.filter(v => v.lang.startsWith(language));
+        
+        if (gender) {
+            const genderPatterns = {
+                male: ['male', 'man', 'boy'],
+                female: ['female', 'woman', 'girl']
+            };
+            
+            const patterns = genderPatterns[gender];
+            filtered = filtered.filter(v => 
+                patterns.some(pattern => v.name.toLowerCase().includes(pattern))
+            );
+        }
+        
+        return filtered;
+    }
+
+    /**
+     * Debug: Log all available voices
+     */
+    logAvailableVoices(): void {
+        const voices = this.synthesis.getVoices();
+        console.log('Available voices:', voices.map(v => ({ name: v.name, lang: v.lang })));
     }
 
     /**

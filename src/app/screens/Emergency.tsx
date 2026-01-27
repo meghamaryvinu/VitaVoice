@@ -53,26 +53,57 @@ export const Emergency = () => {
           animate={{ scale: 1 }}
           className="bg-white rounded-3xl p-8 shadow-xl text-center"
         >
-          <motion.div
-            animate={{
-              boxShadow: [
-                '0 0 0 0 rgba(220, 38, 38, 0.4)',
-                '0 0 0 20px rgba(220, 38, 38, 0)',
-                '0 0 0 0 rgba(220, 38, 38, 0)'
-              ]
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="inline-block"
-          >
+          <div className="relative inline-block">
+            {/* Ripple Animation Rings */}
+            <motion.div
+              animate={{
+                scale: [1, 1.4],
+                opacity: [0.6, 0]
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeOut"
+              }}
+              className="absolute inset-0 w-40 h-40 rounded-full border-4 border-[#DC2626]"
+            />
+            <motion.div
+              animate={{
+                scale: [1, 1.4],
+                opacity: [0.4, 0]
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                delay: 0.5,
+                ease: "easeOut"
+              }}
+              className="absolute inset-0 w-40 h-40 rounded-full border-4 border-[#DC2626]"
+            />
+            <motion.div
+              animate={{
+                scale: [1, 1.4],
+                opacity: [0.2, 0]
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                delay: 1,
+                ease: "easeOut"
+              }}
+              className="absolute inset-0 w-40 h-40 rounded-full border-4 border-[#DC2626]"
+            />
+
+            {/* Main Button */}
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => handleCall('108')}
-              className="w-40 h-40 rounded-full bg-[#DC2626] flex flex-col items-center justify-center text-white shadow-2xl"
+              className="relative w-40 h-40 rounded-full bg-[#DC2626] flex flex-col items-center justify-center text-white shadow-2xl z-10"
             >
               <Phone className="w-12 h-12 mb-2" />
               <span className="text-5xl font-bold">108</span>
             </motion.button>
-          </motion.div>
+          </div>
           <p className="mt-6 text-lg text-gray-600">Emergency Medical Services</p>
           <p className="text-sm text-gray-500 mt-1">Tap to call immediately</p>
         </motion.div>
