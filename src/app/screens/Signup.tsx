@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, ArrowRight, Phone, Lock, Check, Mail } from 'lucide-react';
 import { authService, type SignupData } from '@/services/authService';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /* ========================= FORM DATA ========================= */
 interface FormData {
@@ -38,6 +39,7 @@ interface FormData {
 /* ========================= MAIN COMPONENT ========================= */
 export const Signup = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');

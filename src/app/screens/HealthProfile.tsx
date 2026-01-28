@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Plus, User, AlertCircle, Apple, X } from 'lucide-react';
 import { useApp } from '@/app/context/AppContext';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export const HealthProfile = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { familyMembers, addFamilyMember } = useApp();
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({

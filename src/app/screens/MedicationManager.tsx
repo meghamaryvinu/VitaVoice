@@ -5,9 +5,11 @@ import { ArrowLeft, Plus, Pill, Clock, CheckCircle, X, Calendar } from 'lucide-r
 import { medicationService, type Medication } from '@/services/medicationService';
 import { authService } from '@/services/authService';
 import { useApp } from '@/app/context/AppContext';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export const MedicationManager = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const { familyMembers } = useApp();
     const [medications, setMedications] = useState<Medication[]>([]);
     const [todaySchedule, setTodaySchedule] = useState<{ medication: Medication; time: string; taken: boolean }[]>([]);

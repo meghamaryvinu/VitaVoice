@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Languages, Volume2, Accessibility, Database, Shield, Info, ChevronRight, X, Bell, Moon, Sun, Trash2, Download, FileText } from 'lucide-react';
 import { Switch } from '@/app/components/ui/switch';
+import { useTranslation } from '@/hooks/useTranslation';
 import { languageService } from '@/services/languageService';
 import { speechService } from '@/services/speechService';
 import { notificationService } from '@/services/notificationService';
@@ -10,7 +11,8 @@ import { useApp } from '@/app/context/AppContext';
 
 export const Settings = () => {
   const navigate = useNavigate();
-  const { selectedLanguage, setSelectedLanguage, isOnline, autoPlay, setAutoPlay } = useApp();
+  const { selectedLanguage, setSelectedLanguage, selectedLanguageCode, setSelectedLanguageCode, isOnline, autoPlay, setAutoPlay } = useApp();
+  const { t } = useTranslation();
   const [highContrast, setHighContrast] = useState(false);
   const [textSize, setTextSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [voiceSpeed, setVoiceSpeed] = useState<number>(() => {
@@ -84,16 +86,19 @@ export const Settings = () => {
   const currentLang = languageService.getLanguage();
 
   const handleLanguageChange = (code: string) => {
-    // @ts-ignore
-    languageService.setLanguage(code);
+    // Set the language in languageService
+    languageService.setLanguage(code as any);
+    
+    // Update context with both code and name
     const lang = languages.find(l => l.code === code);
     if (lang) {
+      setSelectedLanguageCode(code);
       setSelectedLanguage(lang.name);
-      // @ts-ignore
-      const greeting = languageService.translate('greeting', code);
+      
+      // Speak greeting in new language
       if (speechService.isSpeechSynthesisSupported()) {
-        // @ts-ignore
-        speechService.speak(greeting, { language: code });
+        const greeting = languageService.translate('greeting', code as any);
+        speechService.speak(greeting, { language: code as any });
       }
     }
     setShowLanguageDialog(false);
@@ -131,23 +136,23 @@ export const Settings = () => {
     }
   };
 
-  const settingsSections = [
+  const getSettingsSections = () => [
     {
-      title: 'Language & Voice',
+      title: t('language_voice'),
       items: [
         {
           icon: Languages,
-          label: 'App Language',
+          label: t('app_language'),
           value: selectedLanguage,
           hasChevron: true,
           onClick: () => setShowLanguageDialog(true)
         },
         {
           icon: Volume2,
-          label: 'Voice Speed',
+          label: t('voice_speed'),
           customControl: (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Slow</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{t('slow')}</span>
               <input
                 type="range"
                 min="0.5"
@@ -157,27 +162,27 @@ export const Settings = () => {
                 onChange={(e) => handleVoiceSpeedChange(parseFloat(e.target.value))}
                 className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#2563EB]"
               />
-              <span className="text-xs text-gray-500 dark:text-gray-400">Fast</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{t('fast')}</span>
             </div>
           )
         },
         {
           icon: Volume2,
-          label: 'Voice Gender',
+          label: t('voice_gender'),
           customControl: (
             <select 
               value={voiceGender}
               onChange={(e) => handleVoiceGenderChange(e.target.value as 'male' | 'female')}
               className="px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
             >
-              <option value="female">Female</option>
-              <option value="male">Male</option>
+              <option value="female">{t('female')}</option>
+              <option value="male">{t('male')}</option>
             </select>
           )
         },
         {
           icon: Volume2,
-          label: 'Auto-play Responses',
+          label: t('autoplay_responses'),
           toggle: true,
           value: autoPlay,
           onChange: setAutoPlay
@@ -185,11 +190,11 @@ export const Settings = () => {
       ]
     },
     {
-      title: 'Notifications',
+      title: t('notifications'),
       items: [
         {
           icon: Bell,
-          label: 'Health Reminders',
+          label: t('health_reminders'),
           toggle: true,
           value: notificationsEnabled,
           onChange: handleNotificationToggle
@@ -197,11 +202,11 @@ export const Settings = () => {
       ]
     },
     {
-      title: 'Appearance',
+      title: t('appearance'),
       items: [
         {
           icon: Accessibility,
-          label: 'Text Size',
+          label: t('text_size'),
           customControl: (
             <div className="flex items-center gap-3 bg-gray-100 dark:bg-slate-800 rounded-lg p-1">
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400 px-2">A</span>
@@ -225,7 +230,7 @@ export const Settings = () => {
         },
         {
           icon: highContrast ? Sun : Moon,
-          label: 'Dark Mode',
+          label: t('dark_mode'),
           toggle: true,
           value: highContrast,
           onChange: (val: boolean) => {
@@ -240,21 +245,21 @@ export const Settings = () => {
       ]
     },
     {
-      title: 'Data & Storage',
+      title: t('data_storage'),
       items: [
         {
           icon: Database,
-          label: 'Offline Mode',
+          label: t('offline_mode'),
           toggle: true,
           value: !isOnline,
           onChange: () => { },
           disabled: true,
-          description: isOnline ? 'App is online' : 'App is running offline'
+          description: isOnline ? t('app_is_online') : t('app_is_offline')
         },
-        { icon: Database, label: 'Storage Used', value: storageUsed, hasChevron: false },
+        { icon: Database, label: t('storage_used'), value: storageUsed, hasChevron: false },
         {
           icon: Trash2,
-          label: 'Clear Cache',
+          label: t('clear_cache'),
           hasChevron: true,
           onClick: () => setShowClearCacheConfirm(true),
           color: 'text-red-600'
@@ -262,42 +267,44 @@ export const Settings = () => {
       ]
     },
     {
-      title: 'Privacy & Security',
+      title: t('privacy_security'),
       items: [
-        { icon: Shield, label: 'Data Encryption', value: 'Enabled' },
+        { icon: Shield, label: t('data_encryption'), value: t('enabled') },
         {
           icon: Download,
-          label: 'Backup Data',
+          label: t('backup_data'),
           hasChevron: true,
           onClick: handleExportData
         }
       ]
     },
     {
-      title: 'About',
+      title: t('about'),
       items: [
-        { icon: Info, label: 'App Version', value: '1.0.0' },
+        { icon: Info, label: t('app_version'), value: '1.0.0' },
         {
           icon: FileText,
-          label: 'Privacy Policy',
+          label: t('privacy_policy'),
           hasChevron: true,
           onClick: () => setShowPolicy({
-            title: 'Privacy Policy',
+            title: t('privacy_policy'),
             content: 'VitaVoice is committed to protecting your privacy. All your health data is stored locally on your device and is not shared with any third parties without your explicit consent. We use industry-standard encryption to secure your personal information.'
           })
         },
         {
           icon: FileText,
-          label: 'Terms of Service',
+          label: t('terms_of_service'),
           hasChevron: true,
           onClick: () => setShowPolicy({
-            title: 'Terms of Service',
+            title: t('terms_of_service'),
             content: 'By using VitaVoice, you agree to our terms. This app provides health information but is not a substitute for professional medical advice. Always consult with a doctor for medical decisions.'
           })
         }
       ]
     }
   ];
+
+  const settingsSections = getSettingsSections();
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 transition-colors duration-300">
@@ -309,7 +316,7 @@ export const Settings = () => {
         >
           <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-300" />
         </motion.button>
-        <h1 className="text-xl font-bold text-[#1E293B] dark:text-white">Settings</h1>
+        <h1 className="text-xl font-bold text-[#1E293B] dark:text-white">{t('settings')}</h1>
       </div>
 
       <div className="px-6 py-6 space-y-6">
@@ -387,7 +394,7 @@ export const Settings = () => {
               className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-[#1E293B] dark:text-white">Select Language</h2>
+                <h2 className="text-xl font-bold text-[#1E293B] dark:text-white">{t('select_language_header')}</h2>
                 <button
                   onClick={() => setShowLanguageDialog(false)}
                   className="w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 flex items-center justify-center"
@@ -402,7 +409,7 @@ export const Settings = () => {
                     key={lang.code}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => handleLanguageChange(lang.code)}
-                    className={`w-full p-4 rounded-xl border-2 transition-all flex items-center justify-between ${currentLang === lang.code
+                    className={`w-full p-4 rounded-xl border-2 transition-all flex items-center justify-between ${selectedLanguageCode === lang.code
                       ? 'border-[#2563EB] bg-[#2563EB]/10 dark:bg-blue-900/20'
                       : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
                       }`}
@@ -414,7 +421,7 @@ export const Settings = () => {
                         <div className="text-sm text-gray-600 dark:text-gray-400">{lang.name}</div>
                       </div>
                     </div>
-                    {currentLang === lang.code && (
+                    {selectedLanguageCode === lang.code && (
                       <div className="w-6 h-6 rounded-full bg-[#2563EB] flex items-center justify-center">
                         <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -446,20 +453,20 @@ export const Settings = () => {
               onClick={(e) => e.stopPropagation()}
               className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-sm w-full"
             >
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Clear All Data?</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">This will remove all your local data, including login session and health records. This action cannot be undone.</p>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('clear_all_data')}</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">{t('clear_data_warning')}</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowClearCacheConfirm(false)}
                   className="flex-1 py-2.5 border border-gray-300 dark:border-slate-700 rounded-xl font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button
                   onClick={handleClearCache}
                   className="flex-1 py-2.5 bg-red-600 text-white rounded-xl font-medium"
                 >
-                  Clear Data
+                  {t('clear_data')}
                 </button>
               </div>
             </motion.div>

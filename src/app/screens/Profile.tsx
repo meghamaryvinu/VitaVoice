@@ -15,9 +15,11 @@ import {
     HeartPulse
 } from 'lucide-react';
 import { authService, type UserProfile } from '@/services/authService';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export const Profile = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [user, setUser] = useState<UserProfile | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState<Partial<UserProfile>>({});
@@ -60,7 +62,7 @@ export const Profile = () => {
                 >
                     <ArrowLeft className="w-6 h-6 text-gray-700" />
                 </motion.button>
-                <h1 className="text-xl font-bold text-[#1E293B]">My Profile</h1>
+                <h1 className="text-xl font-bold text-[#1E293B]">{t('profile')}</h1>
                 <div className="flex-1" />
                 <motion.button
                     whileTap={{ scale: 0.9 }}

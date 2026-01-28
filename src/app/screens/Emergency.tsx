@@ -5,6 +5,7 @@ import { ArrowLeft, Phone, ChevronDown, ChevronUp, AlertCircle } from 'lucide-re
 import { Map } from '../components/map/Map';
 import { HospitalList } from '../components/map/HospitalList';
 import { Hospital, hospitalService } from '../services/hospitalService';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const firstAidSteps = [
   {
@@ -26,6 +27,7 @@ const DEFAULT_LOCATION = { lat: 19.0760, lng: 72.8777 };
 
 export const Emergency = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   // Map & Location State

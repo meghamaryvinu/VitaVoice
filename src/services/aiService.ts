@@ -24,6 +24,7 @@ class AIService {
         assessmentStage: 'initial',
         emergencyDetected: false,
     };
+    private currentLanguageCode: string = 'en';
 
     /**
      * Check if AI service is available (online + API key)
@@ -35,7 +36,12 @@ class AIService {
     /**
      * Send message to AI and get response
      */
-    async chat(userMessage: string, patientInfo?: PatientInfo): Promise<AIResponse> {
+    async chat(userMessage: string, patientInfo?: PatientInfo, languageCode?: string): Promise<AIResponse> {
+        if (languageCode) {
+            this.currentLanguageCode = languageCode;
+            languageService.setLanguage(languageCode as any);
+        }
+
         // Check for emergency first
         const emergencyCheck = emergencyDetector.detectEmergency(
             this.context.currentSymptoms,
@@ -153,13 +159,13 @@ class AIService {
      * Build system prompt for AI
      */
     private buildSystemPrompt(patientInfo?: PatientInfo): string {
-        const lang = languageService.getLanguage();
-        const langName = languageService.getLanguageInfo().name;
+        const langCode = this.currentLanguageCode;
+        const langName = languageService.getLanguageInfo(langCode as any).name;
 
-        return `You are VitaVoice, a compassionate healthcare assistant for rural India. 
+        return `You are Kendall, a compassionate healthcare assistant for rural India. 
 
 CRITICAL RULES:
-1. Respond in ${langName} language
+1. Respond in ${langName} language (language code: ${langCode})
 2. Use simple, rural-friendly language
 3. Ask ONE question at a time
 4. Never diagnose - only suggest possibilities
@@ -190,17 +196,17 @@ Be warm, respectful, and never scary. You are like a trusted community health wo
      */
     private getRuleBasedResponse(userMessage: string, patientInfo?: PatientInfo): AIResponse {
         const lowerMessage = userMessage.toLowerCase();
-        const lang = languageService.getLanguage();
+        const lang = this.currentLanguageCode;
 
         // Initial greeting
         if (this.context.assessmentStage === 'initial') {
             this.context.assessmentStage = 'gathering';
             return {
-                text: languageService.translate('main_problem', lang),
+                text: languageService.translate('main_problem', lang as any),
                 confidence: 0.6,
                 suggestedQuestions: [
-                    languageService.translate('when_started', lang),
-                    languageService.translate('severity_question', lang),
+                    languageService.translate('when_started', lang as any),
+                    languageService.translate('severity_question', lang as any),
                 ],
             };
         }
@@ -225,7 +231,7 @@ Be warm, respectful, and never scary. You are like a trusted community health wo
         const assessment = this.buildAssessment(detectedSymptoms, patientInfo);
         const result = symptomEngine.analyzeSymptoms(assessment);
 
-        let responseText = languageService.translate('see_doctor', lang) + '\n\n';
+        let responseText = languageService.translate('see_doctor', lang as any) + '\n\n';
 
         if (result.possibleConditions.length > 0) {
             responseText += `Possible condition: ${result.possibleConditions[0].diseaseName}\n\n`;

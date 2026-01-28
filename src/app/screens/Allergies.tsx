@@ -10,6 +10,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { supabase } from '@/config/supabase';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /* -------------------- CONSTANTS -------------------- */
 
@@ -113,6 +114,7 @@ interface Allergy {
 
 export const Allergies = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [allergies, setAllergies] = useState<Allergy[]>([]);
   const [selectedAllergy, setSelectedAllergy] = useState('');

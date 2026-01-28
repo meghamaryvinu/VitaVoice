@@ -315,11 +315,42 @@ class SpeechService {
     }
 
     /**
+     * Check if a language has available voices
+     */
+    hasVoicesForLanguage(language: string): boolean {
+        const voices = this.synthesis.getVoices();
+        return voices.some(v => v.lang.startsWith(language));
+    }
+
+    /**
+     * Get all available languages with voices
+     */
+    getAvailableLanguages(): string[] {
+        const voices = this.synthesis.getVoices();
+        const langs = new Set<string>();
+        voices.forEach(v => {
+            const langCode = v.lang.split('-')[0]; // Get first part (e.g., 'ta' from 'ta-IN')
+            langs.add(langCode);
+        });
+        return Array.from(langs).sort();
+    }
+
+    /**
      * Debug: Log all available voices
      */
     logAvailableVoices(): void {
         const voices = this.synthesis.getVoices();
-        console.log('Available voices:', voices.map(v => ({ name: v.name, lang: v.lang })));
+        console.log('=== Available Voices ===');
+        const grouped: { [key: string]: string[] } = {};
+        voices.forEach(v => {
+            const lang = v.lang.split('-')[0];
+            if (!grouped[lang]) grouped[lang] = [];
+            grouped[lang].push(`${v.name} (${v.lang})`);
+        });
+        Object.entries(grouped).forEach(([lang, names]) => {
+            console.log(`${lang}: ${names.join(', ')}`);
+        });
+        console.log('=== Total voices:', voices.length);
     }
 
     /**
@@ -328,6 +359,40 @@ class SpeechService {
     pauseSpeaking(): void {
         if (this.synthesis.speaking && !this.synthesis.paused) {
             this.synthesis.pause();
+        }
+    }
+
+    /**
+     * Speak using Google Translate TTS API as fallback when native voices aren't available
+     */
+    async speakUsingGoogleTranslate(
+        text: string,
+        language: string = 'ta',
+        options?: {
+            rate?: number;
+            onEnd?: () => void;
+            onError?: (error: string) => void;
+        }
+    ): Promise<void> {
+        try {
+            // Use Google Translate TTS API
+            const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${language}&client=tw-ob`;
+            
+            const audio = new Audio(url);
+            
+            audio.onended = () => {
+                options?.onEnd?.();
+            };
+            
+            audio.onerror = () => {
+                options?.onError?.('Failed to play Tamil audio from Google Translate');
+            };
+            
+            audio.play().catch(err => {
+                options?.onError?.('Failed to play audio: ' + err.message);
+            });
+        } catch (error) {
+            options?.onError?.('Error: ' + (error as Error).message);
         }
     }
 

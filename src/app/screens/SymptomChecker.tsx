@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, AlertCircle, CheckCircle2, Thermometer, Activity } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const steps = ['Body Part', 'Symptoms', 'Duration & Severity', 'Results'];
 
@@ -368,6 +369,7 @@ const parseDuration = (duration) => {
 };
 
 export default function SymptomChecker() {
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedBodyPart, setSelectedBodyPart] = useState('');
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);

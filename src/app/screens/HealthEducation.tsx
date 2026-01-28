@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, BookOpen, Search, X, CheckCircle } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { healthEducationService, type HealthTopic } from '@/services/healthEducationService';
 
 export const HealthEducation = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [selectedTopic, setSelectedTopic] = useState<HealthTopic | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -35,7 +37,7 @@ export const HealthEducation = () => {
                     >
                         <ArrowLeft className="w-6 h-6" />
                     </motion.button>
-                    <h1 className="text-2xl font-bold">Health Education</h1>
+                    <h1 className="text-2xl font-bold">{t('health_education')}</h1>
                 </div>
 
                 {/* Search */}
@@ -45,7 +47,7 @@ export const HealthEducation = () => {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search health topics..."
+                        placeholder={t('search_health_topics')}
                         className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/20 backdrop-blur text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/40"
                     />
                 </div>
@@ -63,7 +65,7 @@ export const HealthEducation = () => {
                                     : 'bg-white text-gray-700 border border-gray-200'
                                 }`}
                         >
-                            All Topics
+                            {t('all_topics')}
                         </motion.button>
                         {categories.map((category) => (
                             <motion.button
@@ -109,7 +111,7 @@ export const HealthEducation = () => {
                                         <p className="text-sm text-gray-600 mt-1 line-clamp-2">{topic.content}</p>
                                         <div className="mt-2">
                                             <span className="text-xs text-[#8B5CF6] font-medium">
-                                                {topic.keyPoints.length} key points
+                                                {topic.keyPoints.length} {t('key_points')}
                                             </span>
                                         </div>
                                     </div>
@@ -122,7 +124,7 @@ export const HealthEducation = () => {
                 {filteredTopics.length === 0 && (
                     <div className="text-center py-16">
                         <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-600">No topics found</p>
+                        <p className="text-gray-600">{t('no_topics_found')}</p>
                     </div>
                 )}
             </div>

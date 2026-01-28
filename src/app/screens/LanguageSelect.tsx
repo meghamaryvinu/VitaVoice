@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useApp } from '@/app/context/AppContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Check, Volume2 } from 'lucide-react';
 import { languageService } from '@/services/languageService';
 import { speechService } from '@/services/speechService';
 
 export const LanguageSelect = () => {
   const navigate = useNavigate();
-  const { setSelectedLanguage } = useApp();
+  const { setSelectedLanguage, setSelectedLanguageCode } = useApp();
+  const { t } = useTranslation();
   const [selected, setSelected] = useState('');
   const languages = languageService.getSupportedLanguages();
 
@@ -22,6 +24,7 @@ export const LanguageSelect = () => {
 
   const handleLanguageSelect = (code: string) => {
     setSelected(code);
+    setSelectedLanguageCode(code);
     // Play a sample greeting in the selected language
     const greeting = languageService.translate('greeting', code as any);
     if (speechService.isSpeechSynthesisSupported()) {

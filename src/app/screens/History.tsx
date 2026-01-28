@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, User, Users, FileText, Activity, Plus, X } from 'lucide-react';
 import { authService, type UserProfile } from '@/services/authService';
 import { supabase } from '@/config/supabase';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface FamilyMember {
   id: string;
@@ -16,6 +17,7 @@ interface FamilyMember {
 
 export const History = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'personal' | 'family'>('personal');

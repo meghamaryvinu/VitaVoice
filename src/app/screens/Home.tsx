@@ -7,12 +7,14 @@ import {
   Bell, ChevronRight, Heart, Sparkles
 } from 'lucide-react';
 import { useApp } from '@/app/context/AppContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import { authService } from '@/services/authService';
 
 export const Home = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isOnline } = useApp();
+  const { isOnline, selectedLanguageCode } = useApp();
+  const { t } = useTranslation();
   const [isListening, setIsListening] = useState(false);
   const [userName, setUserName] = useState('User');
   const [greeting, setGreeting] = useState('Good Morning');
@@ -37,10 +39,9 @@ useEffect(() => {
   loadUser();
 
   const hour = new Date().getHours();
-  if (hour < 12) setGreeting('Good Morning');
-  else if (hour < 18) setGreeting('Good Afternoon');
-  else setGreeting('Good Evening');
-}, [navigate]);
+  const greetingKey = hour < 12 ? 'good_morning' : hour < 18 ? 'good_afternoon' : 'good_evening';
+  setGreeting(t(greetingKey));
+}, [selectedLanguageCode, t]);
 
 
   const handleMicClick = () => {
@@ -54,12 +55,12 @@ useEffect(() => {
   };
 
   const quickActions = [
-    { icon: Pill, label: 'Medications', color: 'text-blue-600', bg: 'bg-blue-50', route: '/medications' },
-    { icon: Syringe, label: 'Vaccines', color: 'text-emerald-600', bg: 'bg-emerald-50', route: '/vaccinations' },
-    { icon: Calendar, label: 'Appointments', color: 'text-purple-600', bg: 'bg-purple-50', route: '/appointments' },
-    { icon: Activity, label: 'Symptoms', color: 'text-orange-600', bg: 'bg-orange-50', route: '/symptom-checker' },
-    { icon: Heart, label: 'Diet Plan', color: 'text-rose-600', bg: 'bg-rose-50', route: '/diet-nutrition' },
-    { icon: History, label: 'History', color: 'text-amber-600', bg: 'bg-amber-50', route: '/history' },
+    { icon: Pill, labelKey: 'medications', color: 'text-blue-600', bg: 'bg-blue-50', route: '/medications' },
+    { icon: Syringe, labelKey: 'vaccines', color: 'text-emerald-600', bg: 'bg-emerald-50', route: '/vaccinations' },
+    { icon: Calendar, labelKey: 'appointments', color: 'text-purple-600', bg: 'bg-purple-50', route: '/appointments' },
+    { icon: Activity, labelKey: 'symptoms', color: 'text-orange-600', bg: 'bg-orange-50', route: '/symptom-checker' },
+    { icon: Heart, labelKey: 'diet_plan', color: 'text-rose-600', bg: 'bg-rose-50', route: '/diet-nutrition' },
+    { icon: History, labelKey: 'history', color: 'text-amber-600', bg: 'bg-amber-50', route: '/history' },
   ];
 
   return (
@@ -91,13 +92,13 @@ useEffect(() => {
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-2 opacity-90">
               <Sparkles className="w-4 h-4" />
-              <span className="text-xs font-semibold uppercase tracking-wider">Daily Insight</span>
+              <span className="text-xs font-semibold uppercase tracking-wider">{t('daily_insight')}</span>
             </div>
             <p className="text-lg font-medium leading-snug mb-3">
-              Stay hydrated! Drinking water boosts your energy levels.
+              {t('stay_hydrated')}
             </p>
             <button className="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors backdrop-blur-sm">
-              View Health Tips
+              {t('view_health_tips')}
             </button>
           </div>
 
@@ -113,16 +114,16 @@ useEffect(() => {
         {/* Quick Actions Grid */}
         <section>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Health Services</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{t('health_services')}</h2>
             <button className="text-blue-600 dark:text-blue-400 text-sm font-semibold flex items-center gap-1">
-              View All <ChevronRight className="w-4 h-4" />
+              {t('view_all')} <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 gap-4">
             {quickActions.map((action, idx) => (
               <motion.button
-                key={action.label}
+                key={action.labelKey}
                 whileTap={{ scale: 0.95 }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -133,7 +134,7 @@ useEffect(() => {
                 <div className={`w-12 h-12 rounded-xl ${action.bg} ${action.color} flex items-center justify-center dark:bg-opacity-10`}>
                   <action.icon className="w-6 h-6" />
                 </div>
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 text-center">{action.label}</span>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 text-center">{t(action.labelKey)}</span>
               </motion.button>
             ))}
           </div>
@@ -150,8 +151,8 @@ useEffect(() => {
               <Phone className="w-6 h-6" />
             </div>
             <div className="text-left flex-1">
-              <h3 className="text-base font-bold text-red-900 dark:text-red-300">Emergency Help</h3>
-              <p className="text-xs text-red-700 dark:text-red-400">Tap for ambulance and SOS</p>
+              <h3 className="text-base font-bold text-red-900 dark:text-red-300">{t('need_emergency')}</h3>
+              <p className="text-xs text-red-700 dark:text-red-400">{t('call_108')}</p>
             </div>
             <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm">
               <ChevronRight className="w-4 h-4 text-red-400" />

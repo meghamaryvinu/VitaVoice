@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Mic, Send, Volume2, AlertTriangle, MicOff, VolumeX } from 'lucide-react';
 import { useApp } from '@/app/context/AppContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import { aiService } from '@/services/aiService';
 import { speechService } from '@/services/speechService';
 import { languageService } from '@/services/languageService';
@@ -12,13 +13,15 @@ import { debugGeminiAPI } from '@/utils/debugApi';
 
 export const Chat = () => {
   const navigate = useNavigate();
-  const { chatHistory, addChatMessage, isOnline, selectedLanguage, autoPlay, setAutoPlay } = useApp();
+  const { chatHistory, addChatMessage, isOnline, selectedLanguageCode, autoPlay, setAutoPlay } = useApp();
+  const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [emergencyDetected, setEmergencyDetected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isFirstMountRef = useRef(true);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -32,19 +35,27 @@ export const Chat = () => {
   }, []);
 
   useEffect(() => {
-    // Add welcome message if chat is empty
-    if (chatHistory.length === 0) {
-      const welcomeText = languageService.translate('greeting');
+    // When language changes, update the greeting message but only speak it on first mount
+    const welcomeText = t('greeting');
+    
+    // Only show greeting and speak it on the very first mount
+    if (isFirstMountRef.current) {
       addChatMessage({
         sender: 'assistant',
         text: welcomeText,
         hasVoice: true
       });
 
-      // Speak welcome message only if autoPlay is enabled
+      // Speak welcome message only on first mount if autoPlay is enabled
       if (autoPlay && speechService.isSpeechSynthesisSupported()) {
-        speechService.speak(welcomeText);
+        if (selectedLanguageCode === 'ta' && !speechService.hasVoicesForLanguage('ta')) {
+          speechService.speakUsingGoogleTranslate(welcomeText, 'ta');
+        } else {
+          speechService.speak(welcomeText, { language: selectedLanguageCode });
+        }
       }
+
+      isFirstMountRef.current = false;
     }
 
     // Debug API on component mount (only in development)
@@ -54,7 +65,7 @@ export const Chat = () => {
         console.log('API Debug result:', success ? '✅ Working' : '❌ Failed');
       });
     }
-  }, []);
+  }, [selectedLanguageCode]);
 
   const handleSend = async () => {
     if (!input.trim() || isProcessing) return;
@@ -74,7 +85,7 @@ export const Chat = () => {
     if (emergencyCheck.isEmergency) {
       setEmergencyDetected(true);
       const emergencyMsg = emergencyCheck.protocol?.warningMessage ||
-        languageService.translate('emergency_call');
+        t('emergency_call');
 
       addChatMessage({
         sender: 'assistant',
@@ -83,7 +94,11 @@ export const Chat = () => {
       });
 
       if (autoPlay) {
-        speechService.speak(emergencyMsg, { rate: 0.8 });
+        if (selectedLanguageCode === 'ta' && !speechService.hasVoicesForLanguage('ta')) {
+          speechService.speakUsingGoogleTranslate(emergencyMsg, 'ta');
+        } else {
+          speechService.speak(emergencyMsg, { rate: 0.8, language: selectedLanguageCode });
+        }
       }
 
       // Navigate to emergency screen after brief delay
@@ -99,7 +114,7 @@ export const Chat = () => {
       console.log('🤖 Sending message to AI service:', userMessage);
       console.log('🔍 AI Service available:', aiService.isAvailable());
 
-      const response = await aiService.chat(userMessage);
+      const response = await aiService.chat(userMessage, undefined, selectedLanguageCode as any);
       console.log('✅ AI Response received:', response);
 
       addChatMessage({
@@ -110,7 +125,12 @@ export const Chat = () => {
 
       // Speak response only if autoPlay is enabled
       if (autoPlay && speechService.isSpeechSynthesisSupported()) {
-        speechService.speak(response.text);
+        // Use fallback for Tamil if no voices available
+        if (selectedLanguageCode === 'ta' && !speechService.hasVoicesForLanguage('ta')) {
+          speechService.speakUsingGoogleTranslate(response.text, 'ta');
+        } else {
+          speechService.speak(response.text, { language: selectedLanguageCode });
+        }
       }
     } catch (error) {
       console.error('❌ Chat error details:', error);
@@ -177,11 +197,20 @@ export const Chat = () => {
       setIsSpeaking(false);
     } else {
       setIsSpeaking(true);
-      speechService.speak(text, {
-        rate: 0.9,
-        onEnd: () => setIsSpeaking(false),
-        onError: () => setIsSpeaking(false),
-      });
+      // Use fallback for Tamil if no voices available
+      if (selectedLanguageCode === 'ta' && !speechService.hasVoicesForLanguage('ta')) {
+        speechService.speakUsingGoogleTranslate(text, 'ta', {
+          onEnd: () => setIsSpeaking(false),
+          onError: () => setIsSpeaking(false),
+        });
+      } else {
+        speechService.speak(text, {
+          rate: 0.9,
+          language: selectedLanguageCode,
+          onEnd: () => setIsSpeaking(false),
+          onError: () => setIsSpeaking(false),
+        });
+      }
     }
   };
   
@@ -197,11 +226,11 @@ export const Chat = () => {
           <ArrowLeft className="w-6 h-6 text-gray-700" />
         </motion.button>
         <div>
-          <h1 className="font-semibold text-lg text-[#1E293B]">VitaVoice Assistant</h1>
+          <h1 className="font-semibold text-lg text-[#1E293B]">{t('kendall')}</h1>
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-[#059669]' : 'bg-gray-400'}`} />
             <span className="text-sm text-gray-600">
-              {isOnline ? 'Online' : 'Offline Mode'}
+              {isOnline ? t('online') : t('offline_mode_label')}
             </span>
           </div>
         </div>
@@ -211,7 +240,7 @@ export const Chat = () => {
           className={`ml-auto w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
             autoPlay ? 'bg-[#2563EB]/10' : 'bg-red-100'
           }`}
-          title={autoPlay ? 'Disable audio' : 'Enable audio'}
+          title={autoPlay ? t('disable_audio') : t('enable_audio')}
         >
           {autoPlay ? (
             <Volume2 className="w-5 h-5 text-[#2563EB]" />
@@ -243,7 +272,7 @@ export const Chat = () => {
             className="bg-[#DC2626] text-white px-4 py-3 flex items-center gap-3"
           >
             <AlertTriangle className="w-6 h-6 flex-shrink-0" />
-            <p className="text-sm font-semibold">Emergency detected! Redirecting to emergency services...</p>
+            <p className="text-sm font-semibold">{t('emergency_detected')}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -302,7 +331,7 @@ export const Chat = () => {
                     />
                   ))}
                 </div>
-                <span className="text-sm text-gray-600">{languageService.translate('processing')}</span>
+                <span className="text-sm text-gray-600">{t('processing')}</span>
               </div>
             </div>
           </motion.div>
@@ -321,7 +350,7 @@ export const Chat = () => {
             className="px-4 py-3 bg-white border-t border-gray-200 flex items-center justify-center gap-1"
           >
             <span className="text-sm text-[#2563EB] font-medium mr-3">
-              {languageService.translate('listening')}
+              {t('listening')}
             </span>
             {[...Array(7)].map((_, i) => (
               <motion.div
@@ -344,7 +373,7 @@ export const Chat = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={languageService.translate('speak_now')}
+              placeholder={t('speak_now')}
               disabled={isListening || isProcessing}
               className="flex-1 bg-transparent outline-none text-base text-[#1E293B] placeholder:text-gray-500 disabled:opacity-50"
             />

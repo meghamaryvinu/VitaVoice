@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Mail, Lock, Phone, Fingerprint, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { authService } from '@/services/authService';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export const Login = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -70,7 +72,7 @@ export const Login = () => {
           transition={{ delay: 0.2 }}
           className="text-3xl font-bold text-center text-[#1E293B] mb-2"
         >
-          Welcome Back
+          {t('login_title')}
         </motion.h1>
         <motion.p
           initial={{ y: 20, opacity: 0 }}
@@ -78,7 +80,7 @@ export const Login = () => {
           transition={{ delay: 0.3 }}
           className="text-center text-gray-600"
         >
-          Login to access your health records
+          {t('login_subtitle')}
         </motion.p>
       </div>
 
@@ -100,7 +102,7 @@ export const Login = () => {
           {/* Email Input */}
           <div>
             <label className="block text-sm font-medium text-[#1E293B] mb-2 ml-1">
-              Email
+              {t('email')}
             </label>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -108,7 +110,7 @@ export const Login = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
+                placeholder={t('enter_email')}
                 className="w-full h-14 pl-12 pr-4 bg-white border-2 border-gray-200 rounded-xl text-[#1E293B] placeholder:text-gray-400 focus:border-[#2563EB] focus:outline-none transition-colors"
               />
             </div>
@@ -117,7 +119,7 @@ export const Login = () => {
           {/* Password Input */}
           <div>
             <label className="block text-sm font-medium text-[#1E293B] mb-2 ml-1">
-              Password
+              {t('password')}
             </label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -125,7 +127,7 @@ export const Login = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder={t('enter_password')}
                 className="w-full h-14 pl-12 pr-12 bg-white border-2 border-gray-200 rounded-xl text-[#1E293B] placeholder:text-gray-400 focus:border-[#2563EB] focus:outline-none transition-colors"
               />
               <button
@@ -140,7 +142,7 @@ export const Login = () => {
           {/* Forgot Password */}
           <div className="text-right">
             <button className="text-sm text-[#2563EB] hover:underline">
-              Forgot password?
+              {t('forgot_password')}
             </button>
           </div>
 
@@ -157,7 +159,7 @@ export const Login = () => {
             {loading ? (
               <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              'Login'
+              t('login')
             )}
           </motion.button>
 
@@ -167,7 +169,7 @@ export const Login = () => {
             className="w-full h-14 border-2 border-gray-200 rounded-xl font-medium text-[#1E293B] flex items-center justify-center gap-2 hover:border-[#2563EB] hover:bg-[#2563EB]/5 transition-all"
           >
             <Fingerprint className="w-6 h-6 text-[#2563EB]" />
-            <span>Login with Biometrics</span>
+            <span>{t('login_biometrics')}</span>
           </motion.button>
 
           {/* Demo Mode Button */}
@@ -176,7 +178,7 @@ export const Login = () => {
             onClick={() => navigate('/home')}
             className="w-full h-14 border-2 border-amber-300 bg-amber-50 rounded-xl font-medium text-amber-700 flex items-center justify-center gap-2 hover:bg-amber-100 transition-all"
           >
-            <span>🚀 Demo Mode (Skip Login)</span>
+            <span>🚀 {t('demo_mode')}</span>
           </motion.button>
         </motion.div>
 
@@ -188,12 +190,12 @@ export const Login = () => {
           className="mt-8 text-center"
         >
           <p className="text-gray-600">
-            New user?{' '}
+            {t('new_user')}{' '}
             <button
               onClick={() => navigate('/signup')}
               className="text-[#2563EB] font-semibold hover:underline"
             >
-              Sign up
+              {t('signup')}
             </button>
           </p>
         </motion.div>
@@ -206,7 +208,7 @@ export const Login = () => {
           className="mt-8 mb-8 flex items-center justify-center gap-2 text-sm text-gray-500"
         >
           <Lock className="w-4 h-4" />
-          <span>Your data is securely encrypted</span>
+          <span>{t('secure_encrypted')}</span>
         </motion.div>
       </div>
     </div>

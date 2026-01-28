@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Calendar, Clock, MapPin, Star, User, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { appointmentService, type Doctor, type TimeSlot, type Appointment } from '@/services/appointmentService';
 import { authService } from '@/services/authService';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export const Appointments = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [doctors, setDoctors] = useState<Doctor[]>([]);
     const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -86,14 +88,14 @@ export const Appointments = () => {
                 >
                     <ArrowLeft className="w-6 h-6 text-gray-700" />
                 </motion.button>
-                <h1 className="text-xl font-bold text-[#1E293B]">Doctor Appointments</h1>
+                <h1 className="text-xl font-bold text-[#1E293B]">{t('doctor_appointments')}</h1>
             </div>
 
             <div className="px-4 py-6 space-y-6">
                 {/* Upcoming Appointments */}
                 {appointments.filter(a => a.status === 'scheduled').length > 0 && (
                     <div>
-                        <h2 className="text-lg font-bold text-[#1E293B] mb-3">Upcoming Appointments</h2>
+                        <h2 className="text-lg font-bold text-[#1E293B] mb-3">{t('upcoming_appointments')}</h2>
                         <div className="space-y-3">
                             {appointments
                                 .filter(a => a.status === 'scheduled')
@@ -123,7 +125,7 @@ export const Appointments = () => {
                                                 onClick={() => handleCancelAppointment(appointment.id)}
                                                 className="text-xs text-red-600 font-medium px-2 py-1 bg-red-50 rounded-lg hover:bg-red-100"
                                             >
-                                                Cancel
+                                                {t('cancel_appointment')}
                                             </button>
                                         </div>
                                     </motion.div>
@@ -134,11 +136,11 @@ export const Appointments = () => {
 
                 {/* Book New Appointment */}
                 <div>
-                    <h2 className="text-lg font-bold text-[#1E293B] mb-3">Book New Appointment</h2>
+                    <h2 className="text-lg font-bold text-[#1E293B] mb-3">{t('book_new_appointment')}</h2>
 
                     {/* Doctor Selection */}
                     <div className="space-y-3 mb-6">
-                        <h3 className="text-sm font-medium text-gray-500">Select Doctor</h3>
+                        <h3 className="text-sm font-medium text-gray-500">{t('select_doctor')}</h3>
                         {doctors.map(doctor => (
                             <motion.div
                                 key={doctor.id}
@@ -180,7 +182,7 @@ export const Appointments = () => {
                         >
                             {/* Date Selection */}
                             <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-3">Select Date</h3>
+                                <h3 className="text-sm font-medium text-gray-500 mb-3">{t('select_date')}</h3>
                                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                                     {dates.map((date, i) => {
                                         const isSelected = date.toDateString() === selectedDate.toDateString();
@@ -207,7 +209,7 @@ export const Appointments = () => {
 
                             {/* Time Slot Selection */}
                             <div>
-                                <h3 className="text-sm font-medium text-gray-500 mb-3">Select Time</h3>
+                                <h3 className="text-sm font-medium text-gray-500 mb-3">{t('select_time')}</h3>
                                 {availableSlots.length > 0 ? (
                                     <div className="grid grid-cols-3 gap-3">
                                         {availableSlots.map(slot => (
@@ -225,7 +227,7 @@ export const Appointments = () => {
                                     </div>
                                 ) : (
                                     <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                        <p className="text-gray-500 text-sm">No slots available for this date</p>
+                                        <p className="text-gray-500 text-sm">{t('no_slots_available')}</p>
                                     </div>
                                 )}
                             </div>
@@ -240,7 +242,7 @@ export const Appointments = () => {
                                         : 'bg-gray-300 cursor-not-allowed'
                                     }`}
                             >
-                                Book Appointment
+                                {t('book_appointment')}
                             </motion.button>
                         </motion.div>
                     )}
@@ -265,7 +267,7 @@ export const Appointments = () => {
                             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <CheckCircle className="w-8 h-8 text-green-600" />
                             </div>
-                            <h2 className="text-xl font-bold text-[#1E293B] mb-2">Booking Confirmed!</h2>
+                            <h2 className="text-xl font-bold text-[#1E293B] mb-2">{t('appointment_confirmed')}</h2>
                             <p className="text-gray-600 mb-6">
                                 Your appointment with {selectedDoctor?.name} is scheduled for {selectedDate.toLocaleDateString()} at {selectedSlot?.startTime}.
                             </p>
@@ -277,7 +279,7 @@ export const Appointments = () => {
                                 }}
                                 className="w-full py-3 bg-[#2563EB] text-white rounded-xl font-medium"
                             >
-                                Done
+                                {t('done')}
                             </button>
                         </motion.div>
                     </motion.div>

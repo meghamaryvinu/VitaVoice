@@ -3,9 +3,11 @@ import { supabase } from '@/config/supabase';
 import { vaccinationService, Vaccine } from '@/services/vaccinationService';
 import { authService } from '@/services/authService';
 import { useNavigate } from 'react-router-dom'; // or your router
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function VaccinationTracker() {
   const navigate = useNavigate(); // If using React Router
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [patientRecordId, setPatientRecordId] = useState<string>('');
   const [userId, setUserId] = useState<string>('');

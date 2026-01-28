@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { languageService } from '@/services/languageService';
 
 export interface FamilyMember {
   id: string;
@@ -31,7 +32,9 @@ export interface HistoryEntry {
 interface AppContextType {
   isOnline: boolean;
   selectedLanguage: string;
+  selectedLanguageCode: string;
   setSelectedLanguage: (lang: string) => void;
+  setSelectedLanguageCode: (code: string) => void;
   autoPlay: boolean;
   setAutoPlay: (value: boolean) => void;
   familyMembers: FamilyMember[];
@@ -46,7 +49,17 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  
+  // Initialize language code from storage with safety checks
+  const [selectedLanguage, setSelectedLanguageState] = useState<string>(() => {
+    const languageCode = languageService.getLanguage();
+    const langInfo = languageService.getLanguageInfo(languageCode as any);
+    return langInfo?.name || 'English';
+  });
+  
+  const [selectedLanguageCode, setSelectedLanguageCodeState] = useState<string>(() => {
+    return languageService.getLanguage();
+  });
   const [autoPlay, setAutoPlay] = useState(() => {
     const saved = localStorage.getItem('vitavoice_autoplay');
     return saved ? JSON.parse(saved) : true;
@@ -60,6 +73,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const saved = localStorage.getItem('vitavoice_history');
     return saved ? JSON.parse(saved) : [];
   });
+
+  const setSelectedLanguage = (langName: string) => {
+    setSelectedLanguageState(langName);
+  };
+
+  const setSelectedLanguageCode = (code: string) => {
+    setSelectedLanguageCodeState(code);
+    languageService.setLanguage(code as any);
+  };
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -123,7 +145,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       value={{
         isOnline,
         selectedLanguage,
+        selectedLanguageCode,
         setSelectedLanguage,
+        setSelectedLanguageCode,
         autoPlay,
         setAutoPlay,
         familyMembers,

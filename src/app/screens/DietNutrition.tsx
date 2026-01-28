@@ -4,12 +4,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Calendar, Coffee, Moon, Sun, Utensils, RefreshCw, ChevronDown, Check, AlertCircle } from 'lucide-react';
 import { dietPlanService, type DailyMeal, type Meal } from '@/services/dietPlanService';
 import { authService, type UserProfile } from '@/services/authService';
+import { useTranslation } from '@/hooks/useTranslation';
 
 type Mode = 'landing' | 'day_input' | 'meal_input' | 'day_result' | 'meal_result';
 
 // ... imports
 export const DietNutrition = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>('landing');
   const [targetCalories, setTargetCalories] = useState<string>('');
   const [selectedMealType, setSelectedMealType] = useState<string>('lunch');

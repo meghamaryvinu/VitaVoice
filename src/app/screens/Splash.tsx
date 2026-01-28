@@ -2,9 +2,11 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Mic, Languages, WifiOff } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export const Splash = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -24,9 +26,9 @@ export const Splash = () => {
   }, [navigate]);
 
   const features = [
-    { icon: Mic, label: 'Voice Enabled', color: '#2563EB' },
-    { icon: Languages, label: 'Multi-Language', color: '#059669' },
-    { icon: WifiOff, label: 'Offline Ready', color: '#EA580C' }
+    { icon: Mic, labelKey: 'voice_enabled', color: '#2563EB' },
+    { icon: Languages, labelKey: 'multi_language', color: '#059669' },
+    { icon: WifiOff, labelKey: 'offline_ready', color: '#EA580C' }
   ];
 
   return (
@@ -57,7 +59,7 @@ export const Splash = () => {
         transition={{ delay: 0.5 }}
         className="text-xl text-white/90 mb-12 text-center"
       >
-        Your Healthcare Companion
+        {t('your_healthcare_companion')}
       </motion.p>
 
       <motion.div
@@ -68,7 +70,7 @@ export const Splash = () => {
       >
         {features.map((feature, index) => (
           <motion.div
-            key={feature.label}
+            key={feature.labelKey}
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.8 + index * 0.1 }}
@@ -77,7 +79,7 @@ export const Splash = () => {
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
               <feature.icon className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xs text-white/80 text-center whitespace-nowrap">{feature.label}</span>
+            <span className="text-xs text-white/80 text-center whitespace-nowrap">{t(feature.labelKey)}</span>
           </motion.div>
         ))}
       </motion.div>
