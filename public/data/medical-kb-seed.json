@@ -1,0 +1,396 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "lastUpdated": "2024-01-20T00:00:00Z",
+    "sources": [
+      {
+        "name": "Disease Ontology",
+        "url": "https://www.disease-ontology.org/",
+        "licence": "https://www.disease-ontology.org/about/DO_FAIR"
+      },
+      {
+        "name": "Eka-IndicMTEB",
+        "url": "https://huggingface.co/datasets/ekacare/Eka-IndicMTEB",
+        "licence": "CC-BY-SA-4.0"
+      }
+    ],
+    "languages": [
+      "en",
+      "hi",
+      "ta",
+      "te",
+      "kn",
+      "ml",
+      "bn",
+      "mr"
+    ]
+  },
+  "symptoms": [
+    {
+      "id": "symptom_fever",
+      "type": "symptom",
+      "name": "Fever",
+      "languages": {
+        "en": "Fever",
+        "hi": "बुखार",
+        "ta": "காய்ச்சல்",
+        "te": "జ్వరం",
+        "kn": "ಜ್ವರ",
+        "ml": "പനി",
+        "bn": "জ্বর",
+        "mr": "ज्वर"
+      },
+      "description": "Elevated body temperature above normal (>37.5°C / 99.5°F)",
+      "severity": "moderate",
+      "emergencyFlag": false,
+      "source": "Disease Ontology",
+      "licence": "DO_FAIR"
+    },
+    {
+      "id": "symptom_cough",
+      "type": "symptom",
+      "name": "Cough",
+      "languages": {
+        "en": "Cough",
+        "hi": "खांसी",
+        "ta": "இருமல்",
+        "te": "దగ్గర",
+        "kn": "ಕೆಮು",
+        "ml": "ചുമ",
+        "bn": "কাশি",
+        "mr": "खोकला"
+      },
+      "description": "Forceful expulsion of air from lungs, often symptom of respiratory infection",
+      "severity": "mild-moderate",
+      "emergencyFlag": false,
+      "source": "Eka-IndicMTEB"
+    },
+    {
+      "id": "symptom_headache",
+      "type": "symptom",
+      "name": "Headache",
+      "languages": {
+        "en": "Headache",
+        "hi": "सिरदर्द",
+        "ta": "தலைவலி",
+        "te": "తల పattacking",
+        "kn": "ತಲೆ ನೋವು",
+        "ml": "തല വേദന",
+        "bn": "মাথাব্যথা",
+        "mr": "डोकेदुखी"
+      },
+      "description": "Pain or discomfort in the head region",
+      "severity": "mild",
+      "emergencyFlag": false,
+      "source": "Disease Ontology"
+    },
+    {
+      "id": "symptom_breathlessness",
+      "type": "symptom",
+      "name": "Breathlessness (Dyspnea)",
+      "languages": {
+        "en": "Breathlessness",
+        "hi": "सांस लेने में कठिनाई",
+        "ta": "மூச்சுத் திணறல்",
+        "te": "శ్వాస ఇబ్బందులు",
+        "kn": "ಉಸಿರಾಟದ ತೊಂದರೆ",
+        "ml": "ശ്വാസംമുട്ടൽ",
+        "bn": "শ্বাসকষ্ট",
+        "mr": "श्वासोच्छवास"
+      },
+      "description": "Difficulty breathing or shortness of breath - potential emergency sign",
+      "severity": "high",
+      "emergencyFlag": true,
+      "source": "Disease Ontology",
+      "licence": "DO_FAIR"
+    },
+    {
+      "id": "symptom_chest_pain",
+      "type": "symptom",
+      "name": "Chest Pain",
+      "languages": {
+        "en": "Chest Pain",
+        "hi": "छाती में दर्द",
+        "ta": "மார்பு வலி",
+        "te": "ఛాతీ నొప్పి",
+        "kn": "ಛಾತಿಯ ನೋವು",
+        "ml": "നെഞ്ച് വേദന",
+        "bn": "বুকের ব্যথা",
+        "mr": "छाती दुखणे"
+      },
+      "description": "Pain or discomfort in the chest - emergency if severe",
+      "severity": "high",
+      "emergencyFlag": true,
+      "source": "Disease Ontology",
+      "relatedDiseases": [
+        "disease_covid19",
+        "disease_pneumonia"
+      ]
+    }
+  ],
+  "diseases": [
+    {
+      "id": "disease_covid19",
+      "type": "disease",
+      "name": "COVID-19",
+      "aliases": [
+        "SARS-CoV-2",
+        "Coronavirus Disease 2019",
+        "COVID"
+      ],
+      "languages": {
+        "en": "COVID-19",
+        "hi": "कोविड-19",
+        "ta": "கோவிட்-19",
+        "te": "కోవిడ్-19",
+        "kn": "ಕೋವಿಡ್-19",
+        "ml": "കോവിഡ്-19",
+        "bn": "কোভিড-19",
+        "mr": "कोविड-19"
+      },
+      "description": "Infectious disease caused by SARS-CoV-2 virus. Can cause respiratory symptoms from mild to severe.",
+      "symptoms": [
+        "symptom_fever",
+        "symptom_cough",
+        "symptom_breathlessness"
+      ],
+      "severity": "moderate-high",
+      "emergencyFlag": true,
+      "diseaseOntologyId": "DOID:0081086",
+      "snomedId": "840539006",
+      "source": "Disease Ontology",
+      "licence": "DO_FAIR",
+      "commonTreatments": [
+        "Rest",
+        "Isolation",
+        "Hydration",
+        "Symptomatic treatment",
+        "Medical oxygen if needed"
+      ],
+      "preventionMeasures": [
+        "Vaccination",
+        "Mask wearing in high-risk settings",
+        "Hand hygiene",
+        "Social distancing if sick"
+      ]
+    },
+    {
+      "id": "disease_influenza",
+      "type": "disease",
+      "name": "Influenza (Flu)",
+      "aliases": [
+        "Influenza virus infection",
+        "Flu"
+      ],
+      "languages": {
+        "en": "Influenza",
+        "hi": "फ्लू",
+        "ta": "இன்ஃப்ளூயன்சா",
+        "te": "ఇన్ఫ్లూయెన్జా",
+        "kn": "ಇನ್ಫ್ಲೂಯೆನ್ಜಾ",
+        "ml": "ഇൻഫ്ലൂയൻസ",
+        "bn": "ইনফ্লুয়েঞ্জা",
+        "mr": "फ्लू"
+      },
+      "description": "Contagious respiratory illness caused by influenza viruses. Usually self-limited but can have complications.",
+      "symptoms": [
+        "symptom_fever",
+        "symptom_cough",
+        "symptom_headache"
+      ],
+      "severity": "mild-moderate",
+      "emergencyFlag": false,
+      "diseaseOntologyId": "DOID:8469",
+      "snomedId": "6142004",
+      "source": "Disease Ontology",
+      "licence": "DO_FAIR",
+      "commonTreatments": [
+        "Rest",
+        "Fluids",
+        "Antiviral medications (if early)",
+        "Over-the-counter pain relief"
+      ]
+    },
+    {
+      "id": "disease_pneumonia",
+      "type": "disease",
+      "name": "Pneumonia",
+      "aliases": [
+        "Pneumonitis",
+        "Lung infection"
+      ],
+      "languages": {
+        "en": "Pneumonia",
+        "hi": "निमोनिया",
+        "ta": "நিউமோனியா",
+        "te": "న్యుమోనియా",
+        "kn": "ನ್ಯೂಮೋನಿಯಾ",
+        "ml": "ന്യുമോണിയ",
+        "bn": "নিউমোনিয়া",
+        "mr": "न्यूमोनिया"
+      },
+      "description": "Infection that inflames air sacs in lungs. Can be caused by bacteria, viruses, or fungi.",
+      "symptoms": [
+        "symptom_cough",
+        "symptom_fever",
+        "symptom_breathlessness",
+        "symptom_chest_pain"
+      ],
+      "severity": "moderate-high",
+      "emergencyFlag": true,
+      "diseaseOntologyId": "DOID:552",
+      "snomedId": "233604007",
+      "source": "Disease Ontology",
+      "licence": "DO_FAIR",
+      "commonTreatments": [
+        "Antibiotics (if bacterial)",
+        "Antiviral medications (if viral)",
+        "Supportive care",
+        "Oxygen therapy if needed",
+        "Hospitalization for severe cases"
+      ],
+      "preventionMeasures": [
+        "Vaccination (pneumococcal, flu)",
+        "Hand hygiene",
+        "Avoid smoke",
+        "Maintain healthy immune system"
+      ]
+    },
+    {
+      "id": "disease_diabetes",
+      "type": "disease",
+      "name": "Diabetes Mellitus",
+      "aliases": [
+        "Diabetes",
+        "Type 2 Diabetes",
+        "Type 1 Diabetes"
+      ],
+      "languages": {
+        "en": "Diabetes",
+        "hi": "मधुमेह",
+        "ta": "நீரிழிவு",
+        "te": "మధుమేహ",
+        "kn": "ಮಧುಮೇಹ",
+        "ml": "പ്രമേഹം",
+        "bn": "ডায়াবেটিস",
+        "mr": "मधुमेह"
+      },
+      "description": "Metabolic disorder characterized by high blood glucose levels, either from insufficient insulin or insulin resistance.",
+      "severity": "chronic",
+      "emergencyFlag": false,
+      "diseaseOntologyId": "DOID:9351",
+      "snomedId": "73211009",
+      "source": "Disease Ontology",
+      "licence": "DO_FAIR",
+      "commonTreatments": [
+        "Lifestyle modification",
+        "Oral medications",
+        "Insulin therapy",
+        "Regular monitoring"
+      ],
+      "preventionMeasures": [
+        "Maintain healthy weight",
+        "Regular exercise",
+        "Balanced diet",
+        "Regular health screening"
+      ]
+    }
+  ],
+  "symptomDiseaseMappings": [
+    {
+      "symptomId": "symptom_fever",
+      "diseaseId": "disease_covid19",
+      "probability": 0.85,
+      "confidence": 0.95,
+      "source": "Disease Ontology"
+    },
+    {
+      "symptomId": "symptom_cough",
+      "diseaseId": "disease_covid19",
+      "probability": 0.8,
+      "confidence": 0.94,
+      "source": "Disease Ontology"
+    },
+    {
+      "symptomId": "symptom_breathlessness",
+      "diseaseId": "disease_covid19",
+      "probability": 0.6,
+      "confidence": 0.92,
+      "source": "Disease Ontology",
+      "severity": "critical"
+    },
+    {
+      "symptomId": "symptom_fever",
+      "diseaseId": "disease_influenza",
+      "probability": 0.9,
+      "confidence": 0.96,
+      "source": "Disease Ontology"
+    },
+    {
+      "symptomId": "symptom_cough",
+      "diseaseId": "disease_influenza",
+      "probability": 0.85,
+      "confidence": 0.95,
+      "source": "Disease Ontology"
+    },
+    {
+      "symptomId": "symptom_headache",
+      "diseaseId": "disease_influenza",
+      "probability": 0.75,
+      "confidence": 0.93,
+      "source": "Disease Ontology"
+    },
+    {
+      "symptomId": "symptom_cough",
+      "diseaseId": "disease_pneumonia",
+      "probability": 0.88,
+      "confidence": 0.96,
+      "source": "Disease Ontology"
+    },
+    {
+      "symptomId": "symptom_fever",
+      "diseaseId": "disease_pneumonia",
+      "probability": 0.8,
+      "confidence": 0.94,
+      "source": "Disease Ontology"
+    },
+    {
+      "symptomId": "symptom_breathlessness",
+      "diseaseId": "disease_pneumonia",
+      "probability": 0.75,
+      "confidence": 0.93,
+      "source": "Disease Ontology"
+    },
+    {
+      "symptomId": "symptom_chest_pain",
+      "diseaseId": "disease_pneumonia",
+      "probability": 0.65,
+      "confidence": 0.89,
+      "source": "Disease Ontology"
+    }
+  ],
+  "emergencyConditions": [
+    "disease_covid19",
+    "disease_pneumonia"
+  ],
+  "references": {
+    "diseaseOntology": {
+      "url": "https://www.disease-ontology.org/",
+      "apiDoc": "https://www.disease-ontology.org/api_doc",
+      "licence": "https://www.disease-ontology.org/about/DO_FAIR"
+    },
+    "ekaIndicMTEB": {
+      "url": "https://huggingface.co/datasets/ekacare/Eka-IndicMTEB",
+      "paper": "https://arxiv.org/abs/2308.09647",
+      "licence": "CC-BY-SA-4.0"
+    },
+    "medQuAD": {
+      "url": "https://github.com/abachaa/MedQuAD",
+      "licence": "Custom"
+    },
+    "snomedCT": {
+      "url": "https://www.snomed.org/",
+      "licence": "SNOMED CT licence"
+    }
+  }
+}
