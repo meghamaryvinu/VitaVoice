@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { verificationService, VerificationRequest } from '@/services/doctor/verificationService';
-import { Check, X, ExternalLink, FileText, Ban } from 'lucide-react';
+import { Check, X, ExternalLink, FileText, Ban, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '@/config/supabase';
 
@@ -75,8 +75,8 @@ export function VerifyDoctors() {
                                 key={req.id}
                                 onClick={() => setSelected(req)}
                                 className={`p-4 rounded-lg cursor-pointer border transition-all ${selected?.id === req.id
-                                        ? 'bg-blue-50 border-blue-500 shadow-md'
-                                        : 'bg-white border-slate-200 hover:border-blue-300'
+                                    ? 'bg-blue-50 border-blue-500 shadow-md'
+                                    : 'bg-white border-slate-200 hover:border-blue-300'
                                     }`}
                             >
                                 <p className="font-medium text-slate-900">Dr. {req.doctor.full_name}</p>
